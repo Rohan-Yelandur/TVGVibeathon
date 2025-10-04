@@ -1,0 +1,51 @@
+.App {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+/* Standardized Border Radius */
+:root {
+  --border-radius-sm: 15px;
+  --border-radius-md: 25px;
+  --border-radius-lg: 30px;
+  --border-radius-pill: 50px;
+}
+
+/* Glass Card Effect */
+.glass-card {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: var(--border-radius-lg);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 32px rgba(184, 192, 255, 0.2);
+  transition: all 0.3s ease;
+}
+
+.glass-card:hover {
+  box-shadow: 0 12px 48px rgba(184, 192, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+/* Bounce-in Animation */
+.bounce-in {
+  animation: bounceIn 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes bounceIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

@@ -1,0 +1,139 @@
+.camera-section {
+  min-height: 90vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.camera-container {
+  width: 100%;
+  max-width: 1400px;
+  padding: 2rem;
+}
+
+.camera-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.camera-header h2 {
+  font-size: 2.5rem;
+  background: linear-gradient(135deg, #7B2CBF, #5A67D8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 0.5rem;
+}
+
+.camera-header p {
+  color: var(--color-text-dark);
+  opacity: 0.8;
+  font-size: 1.1rem;
+}
+
+.camera-window {
+  width: 100%;
+  height: 75vh;
+  background: linear-gradient(135deg, rgba(231, 198, 255, 0.1), rgba(187, 208, 255, 0.1));
+  border-radius: var(--border-radius-md);
+  border: 2px solid rgba(184, 192, 255, 0.3);
+  overflow: hidden;
+  position: relative;
+  margin-bottom: 2rem;
+  box-shadow: inset 0 0 40px rgba(184, 192, 255, 0.2);
+}
+
+.camera-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1); /* Mirror the video for natural feeling */
+}
+
+.camera-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-dark);
+  opacity: 0.6;
+  animation: pulse 3s ease-in-out infinite;
+}
+
+.camera-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.camera-placeholder p {
+  font-size: 1.3rem;
+  font-weight: 500;
+}
+
+.camera-controls {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.control-button {
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(184, 192, 255, 0.3);
+  color: var(--color-text-dark);
+  padding: 0.8rem 2rem;
+  border-radius: var(--border-radius-pill);
+  cursor: pointer;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 600;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(184, 192, 255, 0.2);
+}
+
+.control-button:hover {
+  background: rgba(184, 192, 255, 0.3);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(184, 192, 255, 0.4);
+  border-color: rgba(184, 192, 255, 0.5);
+}
+
+.control-button:active {
+  transform: translateY(-1px);
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@media (max-width: 768px) {
+  .camera-header h2 {
+    font-size: 2rem;
+  }
+  
+  .camera-controls {
+    flex-direction: column;
+  }
+  
+  .control-button {
+    width: 100%;
+  }
+}
