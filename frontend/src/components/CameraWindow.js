@@ -35,17 +35,8 @@ const CameraWindow = ({ onFullscreenChange }) => {
         // For piano, pass raw landmarks AND video element for proper coordinate mapping
         currentInstrumentRef.current.updatePressedKeys(landmarks, videoRef.current);
       } else {
-        // For guitar, extract fingertips (including thumb)
-        const fingertips = [];
-        const fingertipIndices = [4, 8, 12, 16, 20];
-        
-        landmarks.forEach(hand => {
-          fingertipIndices.forEach(index => {
-            fingertips.push(hand[index]);
-          });
-        });
-
-        currentInstrumentRef.current.updatePressedKeys(fingertips);
+        // For guitar, pass full hand landmarks (needs two hands for positioning)
+        currentInstrumentRef.current.updatePressedKeys(landmarks);
       }
     } else {
       // No hands detected - start or continue timer
@@ -59,7 +50,7 @@ const CameraWindow = ({ onFullscreenChange }) => {
       if (selectedInstrument === 'piano') {
         currentInstrumentRef.current.updatePressedKeys(null, videoRef.current);
       } else {
-        currentInstrumentRef.current.updatePressedKeys(null);
+        currentInstrumentRef.current.updatePressedKeys([]);
       }
     }
   };

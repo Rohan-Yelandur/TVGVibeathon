@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
+import React, { useRef, useEffect, useState, forwardRef, useImperativeHandle } from 'react';
 import * as THREE from 'three';
 import './Guitar.css';
 
@@ -9,6 +9,10 @@ const Guitar = forwardRef(({ onStringPlayed }, ref) => {
   const rendererRef = useRef(null);
   const cameraRef = useRef(null);
   const animationFrameRef = useRef(null);
+  const lastGuitarScaleRef = useRef(1.2);
+  const isRepositioningRef = useRef(false);
+  const [showInstructions, setShowInstructions] = useState(true);
+  const [instructionText, setInstructionText] = useState('Show two hands to position the guitar');
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -47,66 +51,65 @@ const Guitar = forwardRef(({ onStringPlayed }, ref) => {
     guitarModelRef.current = guitarGroup;
 
     // Guitar body
-    const bodyGeometry = new THREE.BoxGeometry(0.8, 1.2, 0.15);
+    const bodyGeometry = new THREE.BoxGeometry(0.6, 0.8, 0.1);
     const bodyMaterial = new THREE.MeshStandardMaterial({
       color: 0x8B4513,
       roughness: 0.6,
-      metalness: 0.2,
+      metalness: 0.1,
     });
     const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
     guitarGroup.add(body);
 
     // Sound hole
-    const holeGeometry = new THREE.CircleGeometry(0.15, 32);
-    const holeMaterial = new THREE.MeshStandardMaterial({
-      color: 0x1a1a1a,
-      roughness: 0.9,
+    const soundholeGeometry = new THREE.CylinderGeometry(0.1, 0.1, 0.12, 32);
+    const soundholeMaterial = new THREE.MeshStandardMaterial({
+      color: 0x111111,
+      roughness: 0.4,
     });
-    const hole = new THREE.Mesh(holeGeometry, holeMaterial);
-    hole.position.set(0, 0.2, 0.076);
-    guitarGroup.add(hole);
+    const soundhole = new THREE.Mesh(soundholeGeometry, soundholeMaterial);
+    soundhole.rotation.x = Math.PI / 2;
+    soundhole.position.y = 0.1;
+    guitarGroup.add(soundhole);
 
     // Guitar neck
-    const neckGeometry = new THREE.BoxGeometry(0.15, 1.5, 0.1);
+    const neckGeometry = new THREE.BoxGeometry(0.12, 1.0, 0.08);
     const neckMaterial = new THREE.MeshStandardMaterial({
       color: 0xD2B48C,
-      roughness: 0.7,
+      roughness: 0.8,
     });
     const neck = new THREE.Mesh(neckGeometry, neckMaterial);
-    neck.position.set(0, 1.35, 0);
+    neck.position.y = 0.9;
     guitarGroup.add(neck);
 
     // Headstock
-    const headGeometry = new THREE.BoxGeometry(0.25, 0.3, 0.1);
+    const headGeometry = new THREE.BoxGeometry(0.14, 0.2, 0.08);
     const head = new THREE.Mesh(headGeometry, neckMaterial);
-    head.position.set(0, 2.25, 0);
+    head.position.y = 1.45;
     guitarGroup.add(head);
 
     // Guitar strings
-    const stringMaterial = new THREE.MeshStandardMaterial({
-      color: 0xc0c0c0,
-      roughness: 0.2,
-      metalness: 0.9,
-    });
-
     const stringColors = [
       '#E7C6FF', '#C8B6FF', '#B8C0FF', '#BBD0FF', '#C8B6FF', '#FFD6FF'
     ];
 
     guitarGroup.strings = [];
-    const stringSpacing = 0.04;
-    const stringLength = 2.2;
+    const stringSpacing = 0.05;
+    const stringLength = 1.8;
 
     for (let i = 0; i < 6; i++) {
       const stringGeometry = new THREE.CylinderGeometry(0.003, 0.003, stringLength, 8);
-      const strMaterial = stringMaterial.clone();
-      strMaterial.color.setStyle(stringColors[i]);
+      const strMaterial = new THREE.MeshStandardMaterial({
+        color: stringColors[i],
+        roughness: 0.2,
+        metalness: 0.9,
+      });
       const string = new THREE.Mesh(stringGeometry, strMaterial);
       
       const xPos = (i - 2.5) * stringSpacing;
-      string.position.set(xPos, 0.5, 0.08);
+      string.position.set(xPos, 0.5, 0.055);
       string.userData.originalColor = stringColors[i];
       string.userData.index = i;
+      string.userData.hitStrength = 0;
       
       guitarGroup.add(string);
       guitarGroup.strings.push(string);
@@ -118,51 +121,44 @@ const Guitar = forwardRef(({ onStringPlayed }, ref) => {
       roughness: 0.5,
     });
 
-    const fretPositions = [0.9, 1.1, 1.3, 1.5, 1.7];
+    const fretPositions = [0.7, 0.85, 1.0, 1.15, 1.3];
     fretPositions.forEach(y => {
-      const fretGeometry = new THREE.BoxGeometry(0.16, 0.02, 0.02);
+      const fretGeometry = new THREE.BoxGeometry(0.13, 0.015, 0.015);
       const fret = new THREE.Mesh(fretGeometry, fretMaterial);
-      fret.position.set(0, y, 0.05);
+      fret.position.set(0, y, 0.045);
       guitarGroup.add(fret);
     });
 
-    // Rotate guitar for better view
-    guitarGroup.rotation.x = Math.PI * 0.15;
-    guitarGroup.rotation.y = Math.PI * 0.1;
+    // Store body base offset for positioning
+    guitarGroup.userData.bodyBaseOffset = -0.4;
 
     scene.add(guitarGroup);
 
     // Animation loop
     const animate = () => {
       if (rendererRef.current && sceneRef.current && cameraRef.current) {
-        // Gentle rotation animation
-        if (guitarModelRef.current) {
-          guitarModelRef.current.rotation.y += 0.002;
+        // Update per-string visual feedback (decay hitStrength)
+        if (guitarModelRef.current && guitarModelRef.current.strings) {
+          guitarModelRef.current.strings.forEach(string => {
+            // decay hit strength
+            string.userData.hitStrength = Math.max(0, (string.userData.hitStrength || 0) * 0.88);
 
-          // Update per-string visual feedback (decay hitStrength)
-          if (guitarModelRef.current.strings) {
-            guitarModelRef.current.strings.forEach(string => {
-              // decay hit strength
-              string.userData.hitStrength = Math.max(0, (string.userData.hitStrength || 0) * 0.88);
+            const h = string.userData.hitStrength || 0;
 
-              const h = string.userData.hitStrength || 0;
+            // scale effect
+            const scaleAmount = 1 + h * 0.6; // 1.0 - 1.6
+            string.scale.set(scaleAmount, 1, scaleAmount);
 
-              // scale effect
-              const baseScale = 1;
-              const scaleAmount = 1 + h * 0.6; // 1.0 - 1.6
-              string.scale.set(scaleAmount, 1, scaleAmount);
-
-              // color blend between original and highlight
-              try {
-                const orig = new THREE.Color(string.userData.originalColor);
-                const highlight = new THREE.Color(0x00ff88);
-                const current = orig.clone().lerp(highlight, h);
-                string.material.color.copy(current);
-              } catch (err) {
-                // ignore color errors
-              }
-            });
-          }
+            // color blend between original and highlight
+            try {
+              const orig = new THREE.Color(string.userData.originalColor);
+              const highlight = new THREE.Color(0x00ff88);
+              const current = orig.clone().lerp(highlight, h);
+              string.material.color.copy(current);
+            } catch (err) {
+              // ignore color errors
+            }
+          });
         }
         rendererRef.current.render(sceneRef.current, cameraRef.current);
       }
@@ -203,61 +199,167 @@ const Guitar = forwardRef(({ onStringPlayed }, ref) => {
     };
   }, []);
 
+  // Helper function to recognize fist gesture for repositioning
+  const recognizeFist = (landmarks) => {
+    if (!landmarks || landmarks.length < 21) return false;
+    
+    // Check if all fingertips are below their pip joints (fingers closed)
+    const fingersUp = [];
+    const tipIds = [8, 12, 16, 20]; // Index, middle, ring, pinky
+    
+    for (let i = 0; i < tipIds.length; i++) {
+      const tipId = tipIds[i];
+      const pipId = tipId - 2;
+      if (landmarks[tipId].y < landmarks[pipId].y) {
+        fingersUp.push(i);
+      }
+    }
+    
+    // Fist if no fingers are up
+    return fingersUp.length === 0;
+  };
+
   // Expose methods to parent component
   useImperativeHandle(ref, () => ({
-    updatePressedKeys: (fingertips) => {
+    updatePressedKeys: (handsData) => {
       if (!guitarModelRef.current || !guitarModelRef.current.strings) return;
+      if (!cameraRef.current) return;
 
-      // Reset all strings to original color and scale
+      // Initialize hitStrength for all strings
       guitarModelRef.current.strings.forEach(string => {
-        string.material.color.setStyle(string.userData.originalColor);
-        string.scale.set(1, 1, 1);
-        // initialize hitStrength if missing
-        if (typeof string.userData.hitStrength === 'undefined') string.userData.hitStrength = 0;
+        if (typeof string.userData.hitStrength === 'undefined') {
+          string.userData.hitStrength = 0;
+        }
       });
 
-      // If no fingertips, keep guitar visible but inactive
-      if (!fingertips || fingertips.length === 0) {
+      // If no hands data, hide guitar
+      if (!handsData || handsData.length === 0) {
+        guitarModelRef.current.visible = false;
+        setShowInstructions(true);
+        setInstructionText('Show two hands to position the guitar');
         return;
       }
 
-      // Map fingertip positions to guitar strings
-      // fingertips are normalized coords (x,y)
-      console.debug('Guitar.updatePressedKeys got', fingertips.length, 'tips');
-      fingertips.forEach(tip => {
-        const stringIndex = Math.floor((1 - tip.y) * 6);
+      // Calculate visible dimensions
+      const camera = cameraRef.current;
+      const visibleHeight = 2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.position.z;
+      const visibleWidth = visibleHeight * camera.aspect;
 
-        if (stringIndex >= 0 && stringIndex < 6) {
-          const string = guitarModelRef.current.strings[stringIndex];
-
-          // Calculate a hit strength from x coordinate magnitude and proximity to center
-          // tip.x is [0..1] across the frame; map to [-0.5..0.5] centered
-          const centeredX = tip.x - 0.5;
-          const strength = Math.min(1, Math.abs(centeredX) * 2 + 0.25);
-
-          // Set hitStrength which will be used by animation loop to blend color/scale
-          string.userData.hitStrength = Math.max(string.userData.hitStrength || 0, strength);
-
-          // Immediate visual cue (also handled by animation loop)
-          string.material.color.set(0x00ff88);
-
-          // Optional: callback for audio playback
-          if (onStringPlayed) {
-            const stringNames = ['E4', 'B3', 'G3', 'D3', 'A2', 'E2'];
-            onStringPlayed({
-              string: stringIndex,
-              note: stringNames[stringIndex],
-              intensity: strength
-            });
-          }
-        }
+      // Convert normalized landmark to 3D position
+      const convert = (lm) => ({
+        x: (lm.x - 0.5) * visibleWidth,
+        y: -(lm.y - 0.5) * visibleHeight,
+        z: -lm.z * visibleWidth * 1.5
       });
+
+      // Need two hands to show guitar
+      if (handsData.length === 2) {
+        guitarModelRef.current.visible = true;
+
+        const leftHandLandmarks = handsData[0];
+        const rightHandLandmarks = handsData[1];
+
+        // Check for fist gestures (repositioning mode)
+        const leftFist = recognizeFist(leftHandLandmarks);
+        const rightFist = recognizeFist(rightHandLandmarks);
+        isRepositioningRef.current = leftFist && rightFist;
+
+        // Update instructions
+        if (isRepositioningRef.current) {
+          setShowInstructions(true);
+          setInstructionText('✊ Repositioning Mode - Move hands to adjust guitar size and position');
+        } else {
+          setShowInstructions(true);
+          setInstructionText('🎸 Playing Mode - Strum with right hand | Make fists to reposition');
+        }
+
+        // Use palm base (landmark 0) for strumming hand, middle finger MCP (landmark 9) for neck hand
+        const strumPoint = convert(rightHandLandmarks[0]);
+        const neckPoint = convert(leftHandLandmarks[9]);
+
+        const neckVec = new THREE.Vector3(neckPoint.x, neckPoint.y, neckPoint.z);
+        const strumVec = new THREE.Vector3(strumPoint.x, strumPoint.y, strumPoint.z);
+
+        // Calculate guitar orientation
+        const guitarYAxis = new THREE.Vector3().subVectors(neckVec, strumVec);
+        const distance = guitarYAxis.length();
+        guitarYAxis.normalize();
+
+        // Camera-facing rotation logic
+        const viewDirection = new THREE.Vector3(0, 0, 1);
+        const projection = viewDirection.clone().projectOnVector(guitarYAxis);
+        const guitarZAxis = viewDirection.clone().sub(projection).normalize();
+
+        // Fallback if neck points directly at camera
+        if (guitarZAxis.lengthSq() < 0.001) {
+          const worldX = new THREE.Vector3(1, 0, 0);
+          const projectionX = worldX.clone().projectOnVector(guitarYAxis);
+          guitarZAxis.copy(worldX).sub(projectionX).normalize();
+        }
+
+        const guitarXAxis = new THREE.Vector3().crossVectors(guitarYAxis, guitarZAxis).normalize();
+        const rotationMatrix = new THREE.Matrix4();
+        rotationMatrix.makeBasis(guitarXAxis, guitarYAxis, guitarZAxis);
+        guitarModelRef.current.quaternion.setFromRotationMatrix(rotationMatrix);
+
+        if (isRepositioningRef.current) {
+          // Repositioning mode: scale with distance
+          const scale = distance * 1.1;
+          lastGuitarScaleRef.current = scale;
+          guitarModelRef.current.scale.set(scale, scale, scale);
+
+          // Position at midpoint between hands
+          const midPoint = new THREE.Vector3().addVectors(strumVec, neckVec).multiplyScalar(0.5);
+          guitarModelRef.current.position.copy(midPoint);
+        } else {
+          // Playing mode: use last known scale
+          const scale = lastGuitarScaleRef.current;
+          guitarModelRef.current.scale.set(scale, scale, scale);
+
+          // Position guitar so strumming hand is near body base
+          const localOffset = new THREE.Vector3(0, guitarModelRef.current.userData.bodyBaseOffset || -0.4, 0);
+          localOffset.multiplyScalar(scale);
+          const worldOffset = localOffset.clone().applyQuaternion(guitarModelRef.current.quaternion);
+          guitarModelRef.current.position.copy(strumVec.clone().sub(worldOffset));
+
+          // String interaction: use right hand fingertips
+          const fingertipIndices = [4, 8, 12, 16, 20];
+          fingertipIndices.forEach(tipIdx => {
+            const tip = rightHandLandmarks[tipIdx];
+            const stringIndex = Math.floor((1 - tip.y) * 6);
+
+            if (stringIndex >= 0 && stringIndex < 6) {
+              const string = guitarModelRef.current.strings[stringIndex];
+              const centeredX = tip.x - 0.5;
+              const strength = Math.min(1, Math.abs(centeredX) * 2 + 0.25);
+              string.userData.hitStrength = Math.max(string.userData.hitStrength || 0, strength);
+
+              if (onStringPlayed) {
+                const stringNames = ['E4', 'B3', 'G3', 'D3', 'A2', 'E2'];
+                onStringPlayed({
+                  string: stringIndex,
+                  note: stringNames[stringIndex],
+                  intensity: strength
+                });
+              }
+            }
+          });
+        }
+      } else {
+        // Only one hand - hide guitar
+        guitarModelRef.current.visible = false;
+        setShowInstructions(true);
+        setInstructionText('Show two hands to position the guitar');
+      }
     }
   }));
 
   return (
     <div className="guitar-container">
       <canvas ref={canvasRef} className="guitar-canvas" />
+      {showInstructions && (
+        <div className="guitar-instruction">{instructionText}</div>
+      )}
     </div>
   );
 });
