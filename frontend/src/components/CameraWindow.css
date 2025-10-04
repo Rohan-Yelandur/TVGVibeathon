@@ -83,6 +83,55 @@
   transform: scale(1.05);
 }
 
+.instrument-selector {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  z-index: 10;
+}
+
+.instrument-dropdown {
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 2px solid rgba(184, 192, 255, 0.4);
+  color: var(--color-text-dark);
+  padding: 0.6rem 1.2rem;
+  border-radius: var(--border-radius-pill);
+  cursor: pointer;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 600;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-right: 2.5rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%235B4B8A' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.8rem center;
+}
+
+.instrument-dropdown:hover {
+  background: rgba(184, 192, 255, 0.3);
+  border-color: rgba(184, 192, 255, 0.6);
+  box-shadow: 0 6px 20px rgba(184, 192, 255, 0.4);
+}
+
+.instrument-dropdown:focus {
+  border-color: rgba(184, 192, 255, 0.8);
+  box-shadow: 0 6px 20px rgba(184, 192, 255, 0.5);
+}
+
+.instrument-dropdown option {
+  background: #F5F0FF;
+  color: var(--color-text-dark);
+  padding: 0.5rem;
+  font-weight: 600;
+}
+
 .stop-camera-button {
   position: absolute;
   top: 1rem;

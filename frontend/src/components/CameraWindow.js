@@ -1,13 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react';
 import './CameraWindow.css';
 import HandTracking from './HandTracking';
+import Piano from './Piano';
+import Guitar from './Guitar';
 
 const CameraWindow = () => {
   const videoRef = useRef(null);
+  const pianoRef = useRef(null);
+  const guitarRef = useRef(null);
   const cameraWindowRef = useRef(null);
   const [cameraStatus, setCameraStatus] = useState('idle'); // idle, requesting, active, error
   const [errorMessage, setErrorMessage] = useState('');
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [selectedInstrument, setSelectedInstrument] = useState('piano');
 
   const startCamera = async () => {
     setCameraStatus('requesting');
@@ -108,6 +113,26 @@ const CameraWindow = () => {
     };
   }, []);
 
+  const handleHandsDetected = (landmarks) => {
+    // Get the ref for the currently selected instrument
+    const currentInstrumentRef = selectedInstrument === 'piano' ? pianoRef : guitarRef;
+    
+    if (currentInstrumentRef.current && landmarks) {
+      const fingertips = [];
+      const fingertipIndices = [4, 8, 12, 16, 20]; // Indices for fingertips
+      
+      landmarks.forEach(hand => {
+        fingertipIndices.forEach(index => {
+          fingertips.push(hand[index]);
+        });
+      });
+
+      currentInstrumentRef.current.updatePressedKeys(fingertips);
+    } else if (currentInstrumentRef.current) {
+      currentInstrumentRef.current.updatePressedKeys(null);
+    }
+  };
+
   return (
     <section className="camera-section">
       <div className="camera-container glass-card bounce-in">
@@ -130,13 +155,24 @@ const CameraWindow = () => {
             className="camera-video"
             style={{ display: cameraStatus === 'active' ? 'block' : 'none' }}
           />
-          <HandTracking 
+          <HandTracking
             videoRef={videoRef}
             isActive={cameraStatus === 'active'}
+            onHandsDetected={handleHandsDetected}
           />
           {cameraStatus === 'active' && (
-            <button 
-              className="stop-camera-button" 
+            <>
+              <div style={{ display: selectedInstrument === 'piano' ? 'block' : 'none' }}>
+                <Piano ref={pianoRef} />
+              </div>
+              <div style={{ display: selectedInstrument === 'guitar' ? 'block' : 'none' }}>
+                <Guitar ref={guitarRef} />
+              </div>
+            </>
+          )}
+          {cameraStatus === 'active' && (
+            <button
+              className="stop-camera-button"
               onClick={stopCamera}
               title="Stop Camera"
             >
@@ -152,6 +188,18 @@ const CameraWindow = () => {
             >
               {isFullscreen ? '⇱' : '⤢'}
             </button>
+          )}
+          {cameraStatus === 'active' && (
+            <div className="instrument-selector">
+              <select 
+                value={selectedInstrument}
+                onChange={(e) => setSelectedInstrument(e.target.value)}
+                className="instrument-dropdown"
+              >
+                <option value="piano">🎹 Piano</option>
+                <option value="guitar">🎸 Guitar</option>
+              </select>
+            </div>
           )}
           {cameraStatus !== 'active' && (
             <div className="camera-placeholder">
