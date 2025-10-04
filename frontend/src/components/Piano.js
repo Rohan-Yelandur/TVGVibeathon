@@ -277,49 +277,58 @@ const Piano = forwardRef(({ onKeyPlayed }, ref) => {
       if (landmarks && landmarks.length > 0) {
         // Process each hand
         landmarks.forEach(hand => {
-          // Define finger joints: [fingertip, DIP joint]
+          // Define fingers with tip as primary, DIP as fallback
           // Excluding thumbs (indices 4, 3)
-          const fingerJoints = [
-            [hand[8], hand[7]],   // Index finger: tip (8), DIP (7)
-            [hand[12], hand[11]], // Middle finger: tip (12), DIP (11)
-            [hand[16], hand[15]], // Ring finger: tip (16), DIP (15)
-            [hand[20], hand[19]]  // Pinky finger: tip (20), DIP (19)
+          const fingers = [
+            { tip: 8, dip: 7 },   // Index finger
+            { tip: 12, dip: 11 }, // Middle finger
+            { tip: 16, dip: 15 }, // Ring finger
+            { tip: 20, dip: 19 }  // Pinky finger
           ];
 
-          // Check each finger
-          for (const joints of fingerJoints) {
-            let fingerPressedKey = false;
+          // Helper function to try detecting a key press with a joint
+          const tryDetectKeyPress = (joint) => {
+            if (!joint) return null;
+
+            // Step 1: Convert normalized MediaPipe coordinates (0-1) to video element coordinates
+            // MediaPipe coordinates are NOT mirrored in the data, so we mirror them
+            const videoX = (1 - joint.x) * videoRect.width;
+            const videoY = joint.y * videoRect.height;
             
-            // Check each joint in the finger (tip and DIP)
-            for (const joint of joints) {
-              if (fingerPressedKey) continue; // Once a key is pressed by this finger, stop checking
-              if (!joint) continue;
+            // Step 2: Convert video coordinates to absolute screen coordinates
+            const screenX = videoRect.left + videoX;
+            const screenY = videoRect.top + videoY;
+            
+            // Step 3: Convert screen coordinates to piano canvas coordinates
+            const pianoX = screenX - pianoRect.left;
+            const pianoY = screenY - pianoRect.top;
+            
+            // Step 4: Check if the finger is within the piano canvas bounds
+            if (pianoX < 0 || pianoX > pianoRect.width || pianoY < 0 || pianoY > pianoRect.height) {
+              return null; // Finger is outside the piano area
+            }
 
-              // Step 1: Convert normalized MediaPipe coordinates (0-1) to video element coordinates
-              // MediaPipe coordinates are NOT mirrored in the data, so we mirror them
-              const videoX = (1 - joint.x) * videoRect.width;
-              const videoY = joint.y * videoRect.height;
-              
-              // Step 2: Convert video coordinates to absolute screen coordinates
-              const screenX = videoRect.left + videoX;
-              const screenY = videoRect.top + videoY;
-              
-              // Step 3: Convert screen coordinates to piano canvas coordinates
-              const pianoX = screenX - pianoRect.left;
-              const pianoY = screenY - pianoRect.top;
-              
-              // Step 4: Check if the finger is within the piano canvas bounds
-              if (pianoX < 0 || pianoX > pianoRect.width || pianoY < 0 || pianoY > pianoRect.height) {
-                continue; // Finger is outside the piano area
+            // Find which key is being touched, prioritizing black keys
+            let touchedKey = null;
+            
+            // Check black keys first (they're on top)
+            for (const keyInfo of keyRectsRef.current) {
+              const keyData = pianoKeys.find(pk => pk.name === keyInfo.key);
+              if (keyData && keyData.type === 'black') {
+                const rect = keyInfo.rect;
+                if (pianoX >= rect.left && pianoX <= rect.right &&
+                    pianoY >= rect.top && pianoY <= rect.bottom) {
+                  touchedKey = keyInfo;
+                  break;
+                }
               }
+            }
 
-              // Find which key is being touched, prioritizing black keys
-              let touchedKey = null;
-              
-              // Check black keys first (they're on top)
+            // If no black key was touched, check white keys
+            if (!touchedKey) {
               for (const keyInfo of keyRectsRef.current) {
                 const keyData = pianoKeys.find(pk => pk.name === keyInfo.key);
-                if (keyData && keyData.type === 'black') {
+                if (keyData && keyData.type === 'white') {
                   const rect = keyInfo.rect;
                   if (pianoX >= rect.left && pianoX <= rect.right &&
                       pianoY >= rect.top && pianoY <= rect.bottom) {
@@ -328,38 +337,42 @@ const Piano = forwardRef(({ onKeyPlayed }, ref) => {
                   }
                 }
               }
+            }
 
-              // If no black key was touched, check white keys
-              if (!touchedKey) {
-                for (const keyInfo of keyRectsRef.current) {
-                  const keyData = pianoKeys.find(pk => pk.name === keyInfo.key);
-                  if (keyData && keyData.type === 'white') {
-                    const rect = keyInfo.rect;
-                    if (pianoX >= rect.left && pianoX <= rect.right &&
-                        pianoY >= rect.top && pianoY <= rect.bottom) {
-                      touchedKey = keyInfo;
-                      break;
-                    }
-                  }
-                }
-              }
+            if (touchedKey) {
+              const keyRect = touchedKey.rect;
+              // Calculate press depth based on vertical position within the key
+              const distanceFromTop = pianoY - keyRect.top;
+              const pressDepth = Math.max(0, Math.min(1, distanceFromTop / keyRect.height));
+              
+              // Apply exponential curve for more realistic volume
+              const clampedDepth = Math.max(0, Math.min(1, pressDepth * 1.5));
+              const intensity = Math.pow(clampedDepth, 2);
+              
+              return {
+                key: touchedKey.key,
+                intensity: intensity
+              };
+            }
 
-              if (touchedKey) {
-                const keyRect = touchedKey.rect;
-                // Calculate press depth based on vertical position within the key
-                const distanceFromTop = pianoY - keyRect.top;
-                const pressDepth = Math.max(0, Math.min(1, distanceFromTop / keyRect.height));
-                
-                // Apply exponential curve for more realistic volume (like the working example)
-                const clampedDepth = Math.max(0, Math.min(1, pressDepth * 1.5));
-                const intensity = Math.pow(clampedDepth, 2);
-                
-                // Store or update the intensity for this key (keep the highest intensity)
-                if (!newPressedKeys[touchedKey.key] || newPressedKeys[touchedKey.key] < intensity) {
-                  newPressedKeys[touchedKey.key] = intensity;
-                }
-                
-                fingerPressedKey = true; // Mark that this finger has pressed a key
+            return null;
+          };
+
+          // Check each finger
+          for (const finger of fingers) {
+            // Try fingertip first (primary detection)
+            let detection = tryDetectKeyPress(hand[finger.tip]);
+            
+            // If fingertip didn't detect anything, try DIP joint (fallback)
+            if (!detection) {
+              detection = tryDetectKeyPress(hand[finger.dip]);
+            }
+
+            // If we detected a key press from either joint
+            if (detection) {
+              // Store or update the intensity for this key (keep the highest intensity)
+              if (!newPressedKeys[detection.key] || newPressedKeys[detection.key] < detection.intensity) {
+                newPressedKeys[detection.key] = detection.intensity;
               }
             }
           }
