@@ -23,8 +23,7 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: linear-gradient(135deg, var(--color-lavender) 0%, var(--color-light-blue) 50%, var(--color-pink) 100%);
-  background-attachment: fixed;
+  background: #F5F0FF;
   min-height: 100vh;
   color: var(--color-text-dark);
 }

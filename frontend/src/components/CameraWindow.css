@@ -51,6 +51,129 @@
   transform: scaleX(-1); /* Mirror the video for natural feeling */
 }
 
+.fullscreen-button {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(184, 192, 255, 0.4);
+  color: var(--color-text-dark);
+  width: 3rem;
+  height: 3rem;
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  z-index: 10;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.fullscreen-button:hover {
+  background: rgba(184, 192, 255, 0.4);
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(184, 192, 255, 0.5);
+  border-color: rgba(184, 192, 255, 0.6);
+}
+
+.fullscreen-button:active {
+  transform: scale(1.05);
+}
+
+.stop-camera-button {
+  position: absolute;
+  top: 1rem;
+  right: 5rem;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 2px solid rgba(184, 192, 255, 0.4);
+  color: var(--color-text-dark);
+  width: 3rem;
+  height: 3rem;
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  z-index: 10;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.stop-camera-button:hover {
+  background: rgba(255, 100, 100, 0.3);
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(255, 100, 100, 0.5);
+  border-color: rgba(255, 100, 100, 0.5);
+  color: #ff4444;
+}
+
+.stop-camera-button:active {
+  transform: scale(1.05);
+}
+
+.start-camera-button {
+  background: linear-gradient(135deg, var(--color-lavender), var(--color-purple));
+  color: white;
+  border: none;
+  padding: 1rem 2.5rem;
+  font-size: 1.1rem;
+  border-radius: var(--border-radius-pill);
+  cursor: pointer;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 600;
+  margin-top: 1.5rem;
+  box-shadow: 0 8px 30px rgba(184, 192, 255, 0.4);
+  transition: all 0.3s ease;
+}
+
+.start-camera-button:hover {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 12px 40px rgba(184, 192, 255, 0.6);
+}
+
+.start-camera-button:active {
+  transform: translateY(-1px) scale(1.02);
+}
+
+/* Fullscreen mode styles */
+.camera-window:fullscreen {
+  background: black;
+}
+
+.camera-window:fullscreen .camera-video {
+  object-fit: contain;
+}
+
+.camera-window:-webkit-full-screen {
+  background: black;
+}
+
+.camera-window:-webkit-full-screen .camera-video {
+  object-fit: contain;
+}
+
+.camera-window:-moz-full-screen {
+  background: black;
+}
+
+.camera-window:-moz-full-screen .camera-video {
+  object-fit: contain;
+}
+
+.camera-window:-ms-fullscreen {
+  background: black;
+}
+
+.camera-window:-ms-fullscreen .camera-video {
+  object-fit: contain;
+}
+
 .camera-placeholder {
   width: 100%;
   height: 100%;

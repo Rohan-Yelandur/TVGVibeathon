@@ -1,12 +1,12 @@
 import './App.css';
-import Header from './components/Header';
+import BlobBackground from './components/BlobBackground';
 import Hero from './components/Hero';
 import CameraWindow from './components/CameraWindow';
 
 function App() {
   return (
     <div className="App">
-      <Header />
+      <BlobBackground />
       <Hero />
       <CameraWindow />
     </div>
