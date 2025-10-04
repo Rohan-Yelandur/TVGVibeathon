@@ -75,13 +75,11 @@ const HandTracking = ({ videoRef, isActive, onHandsDetected }) => {
       const timeSinceLastProcess = now - lastProcessTimeRef.current;
       const shouldProcess = timeSinceLastProcess >= FRAME_INTERVAL;
 
-      // Set canvas to fixed lower resolution for better performance
-      const targetWidth = 640;
-      const targetHeight = 480;
-      
-      if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
-        canvas.width = targetWidth;
-        canvas.height = targetHeight;
+      // Match canvas size to video size for consistent coordinate mapping
+      const videoRect = video.getBoundingClientRect();
+      if (canvas.width !== videoRect.width || canvas.height !== videoRect.height) {
+        canvas.width = videoRect.width;
+        canvas.height = videoRect.height;
       }
 
       const ctx = canvas.getContext('2d', { 
@@ -117,6 +115,11 @@ const HandTracking = ({ videoRef, isActive, onHandsDetected }) => {
             drawHandLandmarks(ctx, results.landmarks, canvas.width, canvas.height);
             
             // Send hand data to parent component
+            // Extract fingertips AND DIP joints (excluding thumbs)
+            // Index finger: 8 (tip), 7 (DIP)
+            // Middle finger: 12 (tip), 11 (DIP)
+            // Ring finger: 16 (tip), 15 (DIP)
+            // Pinky finger: 20 (tip), 19 (DIP)
             if (onHandsDetected) {
               onHandsDetected(results.landmarks);
             }

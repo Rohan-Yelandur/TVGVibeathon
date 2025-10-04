@@ -1,0 +1,150 @@
+.app-header {
+  position: fixed;
+  top: 2rem;
+  right: 2rem;
+  z-index: 100;
+}
+
+.profile-menu {
+  position: relative;
+}
+
+.profile-circle {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  border: 3px solid rgba(200, 182, 255, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 
+    0 8px 25px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    0 0 0 1px rgba(184, 192, 255, 0.15);
+}
+
+.profile-circle:hover {
+  background: rgba(200, 182, 255, 0.35);
+  border-color: rgba(200, 182, 255, 0.8);
+  transform: scale(1.08);
+  box-shadow: 
+    0 10px 30px rgba(184, 192, 255, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    0 0 0 1px rgba(184, 192, 255, 0.2);
+}
+
+.profile-circle:active {
+  transform: scale(0.98);
+}
+
+.profile-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  color: var(--color-text-dark);
+  stroke-width: 2.5;
+}
+
+.profile-dropdown {
+  position: absolute;
+  top: calc(100% + 0.75rem);
+  right: 0;
+  min-width: 220px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  border: 3px solid rgba(200, 182, 255, 0.6);
+  border-radius: var(--border-radius-md);
+  overflow: hidden;
+  box-shadow: 
+    0 10px 40px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    0 0 0 1px rgba(184, 192, 255, 0.2);
+  animation: dropdownSlideIn 0.2s ease-out;
+}
+
+@keyframes dropdownSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.profile-menu-item {
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--color-text-dark);
+  transition: all 0.25s ease;
+  border-bottom: 1px solid rgba(200, 182, 255, 0.25);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.profile-menu-item:last-child {
+  border-bottom: none;
+}
+
+.profile-menu-item:hover {
+  background: rgba(200, 182, 255, 0.4);
+  padding-left: 1.5rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.profile-menu-item.theme-toggle:hover {
+  background: rgba(231, 198, 255, 0.45);
+}
+
+.menu-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: var(--color-text-dark);
+  flex-shrink: 0;
+}
+
+/* Add top padding to body to account for fixed header */
+body {
+  padding-top: 5rem;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .app-header {
+    padding: 0.75rem 1rem;
+  }
+
+  .logo h1 {
+    font-size: 1.25rem;
+  }
+
+  .profile-circle {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+
+  .profile-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+
+  .profile-dropdown {
+    min-width: 180px;
+  }
+
+  body {
+    padding-top: 4rem;
+  }
+}

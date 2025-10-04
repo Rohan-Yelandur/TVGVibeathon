@@ -1,109 +1,31 @@
 .guitar-container {
+  /* Full overlay over the camera window */
   position: absolute;
-  bottom: 2rem;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 80%;
-  height: 200px;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-radius: var(--border-radius-md);
-  border: 2px solid rgba(184, 192, 255, 0.3);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-  overflow: hidden;
-  z-index: 3;
-}
-
-.strings-wrapper {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.guitar-string {
-  position: absolute;
+  top: 0;
   left: 0;
   width: 100%;
+  height: 100%;
+  max-width: none;
+  transform: none;
+  background: transparent; /* remove translucent glass */
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
+  overflow: hidden;
+  z-index: 30; /* ensure it's above the video but below UI buttons (which are z-index 10 currently) */
   display: flex;
   align-items: center;
-  padding: 0 2rem;
+  justify-content: center;
+  pointer-events: none; /* allow clicks to pass through to underlying controls */
 }
 
-.string-line {
-  position: relative;
-  width: 100%;
-  height: 3px;
-  border-radius: 2px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-  transition: all 0.1s ease;
-}
-
-.guitar-string:nth-child(1) .string-line { height: 4px; }
-.guitar-string:nth-child(2) .string-line { height: 3.5px; }
-.guitar-string:nth-child(3) .string-line { height: 3px; }
-.guitar-string:nth-child(4) .string-line { height: 2.5px; }
-.guitar-string:nth-child(5) .string-line { height: 2px; }
-.guitar-string:nth-child(6) .string-line { height: 2px; }
-
-.string-vibration {
-  position: absolute;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  box-shadow: 0 0 20px currentColor, 0 0 40px currentColor;
-  animation: vibrate 0.1s ease-in-out infinite;
-  pointer-events: none;
-}
-
-@keyframes vibrate {
-  0%, 100% { transform: translate(-50%, -50%) translateY(0); }
-  25% { transform: translate(-50%, -50%) translateY(-3px); }
-  75% { transform: translate(-50%, -50%) translateY(3px); }
-}
-
-.string-label {
-  position: absolute;
-  left: 0.5rem;
-  font-family: 'Montserrat', sans-serif;
-  font-weight: 700;
-  font-size: 0.9rem;
-  color: var(--color-text-dark);
-  text-shadow: 0 2px 4px rgba(255, 255, 255, 0.5);
-  pointer-events: none;
-}
-
-.fret-markers {
-  position: absolute;
-  top: 0;
-  left: 0;
+.guitar-canvas {
   width: 100%;
   height: 100%;
-  pointer-events: none;
-}
-
-.fret-marker {
-  position: absolute;
-  top: 0;
-  height: 100%;
-  width: 2px;
-  background: rgba(184, 192, 255, 0.2);
-}
-
-.marker-dot {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: rgba(184, 192, 255, 0.4);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  display: block;
+  pointer-events: none; /* don't block clicks */
 }
 
 /* Fullscreen styles */
@@ -112,7 +34,7 @@
 .camera-window:-moz-full-screen .guitar-container,
 .camera-window:-ms-fullscreen .guitar-container {
   width: 90%;
-  height: 300px;
+  height: 350px;
   bottom: 3rem;
 }
 
@@ -120,15 +42,7 @@
 @media (max-width: 768px) {
   .guitar-container {
     width: 90%;
-    height: 150px;
-  }
-
-  .string-label {
-    font-size: 0.8rem;
-  }
-
-  .marker-dot {
-    width: 6px;
-    height: 6px;
+    height: 200px;
+    bottom: 1rem;
   }
 }

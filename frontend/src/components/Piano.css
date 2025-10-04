@@ -1,17 +1,29 @@
-.piano-canvas {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  pointer-events: none;
-  z-index: 10;
-}
-
-/* Piano container styling if needed */
-.piano-overlay {
+.piano-container {
   position: absolute;
   bottom: 0;
   left: 0;
   width: 100%;
-  height: 25%;
-  pointer-events: none;
+  height: 25%; /* Max 25% of parent height */
+  z-index: 3;
+  pointer-events: none; /* Allow clicks to pass through to video/hand-tracking */
+}
+
+.piano-canvas {
+  width: 100%;
+  height: 100%;
+}
+
+/* Fullscreen adjustments */
+.camera-window:fullscreen .piano-container,
+.camera-window:-webkit-full-screen .piano-container,
+.camera-window:-moz-full-screen .piano-container,
+.camera-window:-ms-fullscreen .piano-container {
+  height: 28%;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .piano-container {
+    height: 20%;
+  }
 }

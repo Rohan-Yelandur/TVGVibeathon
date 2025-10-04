@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import './BlobBackground.css';
 
-const BlobBackground = () => {
+const BlobBackground = ({ isActive = true }) => {
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -132,6 +132,12 @@ const BlobBackground = () => {
 
     // Animation loop
     const animate = () => {
+      // Only animate if isActive is true
+      if (!isActive) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        return;
+      }
+
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       // Update and draw blobs
@@ -153,7 +159,7 @@ const BlobBackground = () => {
       window.removeEventListener('resize', resizeCanvas);
       cancelAnimationFrame(animationFrameId);
     };
-  }, []);
+  }, [isActive]);
 
   return <canvas ref={canvasRef} className="blob-background" />;
 };

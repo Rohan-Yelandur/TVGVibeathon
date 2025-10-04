@@ -61,3 +61,64 @@ code {
 ::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(180deg, var(--color-pink), var(--color-purple));
 }
+
+/* Dark Mode Styles */
+.App.dark-mode {
+  --color-text-dark: #E7C6FF;
+}
+
+.App.dark-mode body {
+  background: #1a1625;
+  color: #E7C6FF;
+}
+
+.dark-mode .app-header {
+  background: rgba(0, 0, 0, 0.3);
+  border-bottom-color: rgba(200, 182, 255, 0.2);
+}
+
+.dark-mode .glass-card {
+  background: rgba(0, 0, 0, 0.3);
+  border-color: rgba(200, 182, 255, 0.4);
+}
+
+.dark-mode .camera-window {
+  background: linear-gradient(135deg, 
+    rgba(123, 44, 191, 0.1), 
+    rgba(90, 103, 216, 0.1),
+    rgba(200, 182, 255, 0.08));
+  border-color: rgba(200, 182, 255, 0.4);
+}
+
+.dark-mode .profile-circle,
+.dark-mode .fullscreen-button,
+.dark-mode .stop-camera-button,
+.dark-mode .instrument-dropdown-custom {
+  background: rgba(0, 0, 0, 0.4);
+  border-color: rgba(200, 182, 255, 0.5);
+}
+
+.dark-mode .profile-dropdown,
+.dark-mode .instrument-options {
+  background: rgba(0, 0, 0, 0.5);
+  border-color: rgba(200, 182, 255, 0.5);
+}
+
+.dark-mode .profile-menu-item,
+.dark-mode .instrument-option {
+  color: #E7C6FF;
+}
+
+.dark-mode .profile-icon,
+.dark-mode .menu-icon {
+  color: #E7C6FF;
+}
+
+.dark-mode ::-webkit-scrollbar-track {
+  background: rgba(26, 22, 37, 0.5);
+}
+
+.dark-mode ::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #7B2CBF, #9D4EDD);
+  border-color: rgba(200, 182, 255, 0.3);
+}

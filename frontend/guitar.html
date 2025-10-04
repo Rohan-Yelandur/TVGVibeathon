@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Hand Tracking with Virtual Guitar</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #111827; /* Dark blue-gray background */
+            color: #e5e7eb;
+        }
+        #renderer-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+        }
+        .input_video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            object-fit: cover;
+            opacity: 0.3; /* Faint background video */
+            transform: scaleX(-1); /* Mirror effect */
+            pointer-events: none;
+        }
+        .status-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            font-size: 1.2em;
+            background-color: rgba(17, 24, 39, 0.85);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            border-top: 4px solid #38bdf8; /* Light blue */
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .sign-display {
+            position: absolute;
+            top: 20px;
+            z-index: 10;
+            font-size: 5em;
+            font-weight: bold;
+            color: #ffffff;
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(167, 139, 250, 0.2));
+            padding: 15px 30px;
+            border-radius: 15px;
+            min-width: 80px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            text-shadow: 0 0 15px rgba(255,255,255,0.3);
+        }
+        #sign-display-left {
+            left: 20px;
+        }
+        #sign-display-right {
+            right: 20px;
+        }
+        .control-button {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            padding: 12px 24px;
+            font-size: 1em;
+            font-weight: 500;
+            color: #e5e7eb;
+            background-color: rgba(31, 41, 55, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+            transition: background-color 0.2s ease, transform 0.1s ease;
+        }
+        .control-button:hover {
+            background-color: rgba(55, 65, 81, 0.9);
+        }
+        .control-button:active {
+            transform: translateX(-50%) scale(0.98);
+        }
+    </style>
+</head>
+<body>
+    <div id="status-indicator" class="status-indicator">
+        <div id="spinner" class="spinner"></div>
+        <p id="status-text">Loading 3D Hand Model...</p>
+    </div>
+    
+    <div id="sign-display-left" class="sign-display"></div>
+    <div id="sign-display-right" class="sign-display"></div>
+
+    <video class="input_video"></video>
+    <canvas id="renderer-canvas"></canvas>
+
+    <button id="switch-handedness-btn" class="control-button">Switch to Left-Handed</button>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
+    <script type="module">
+        const { MathUtils } = THREE;
+
+        // --- DOM Elements ---
+        const videoElement = document.querySelector('.input_video');
+        const canvasElement = document.getElementById('renderer-canvas');
+        const statusIndicator = document.getElementById('status-indicator');
+        const statusText = document.getElementById('status-text');
+        const spinner = document.getElementById('spinner');
+        const signDisplayLeft = document.getElementById('sign-display-left');
+        const signDisplayRight = document.getElementById('sign-display-right');
+        const switchHandednessBtn = document.getElementById('switch-handedness-btn');
+        
+        // --- Global 3D and Hand Tracking Variables ---
+        let scene, camera, renderer, leftHandModel, rightHandModel, guitarModel;
+        let isRightHandedMode = true; // true = right hand strums, false = left hand strums
+        let isRepositioning = false;
+        let lastGuitarScale = 1.2; // Initial scale of the guitar
+        const HAND_CONNECTIONS = window.HAND_CONNECTIONS;
+
+        class HandModel {
+            constructor(color) {
+                this.group = new THREE.Group();
+                this.landmarks = [];
+                this.connections = [];
+                const landmarkMaterial = new THREE.MeshPhongMaterial({ color: color, shininess: 80 });
+                const connectionMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff, shininess: 60 });
+                for (let i = 0; i < 21; i++) {
+                    const geometry = new THREE.SphereGeometry(0.015, 16, 16);
+                    const sphere = new THREE.Mesh(geometry, landmarkMaterial);
+                    this.landmarks.push(sphere);
+                    this.group.add(sphere);
+                }
+                for (let i = 0; i < HAND_CONNECTIONS.length; i++) {
+                    const geometry = new THREE.CylinderGeometry(0.008, 0.008, 1, 8);
+                    const cylinder = new THREE.Mesh(geometry, connectionMaterial);
+                    this.connections.push(cylinder);
+                    this.group.add(cylinder);
+                }
+                this.group.visible = false;
+            }
+            update(landmarksData, visibleWidth, visibleHeight) {
+                this.group.visible = true;
+                const convertLandmark = (lm) => ({ x: (lm.x - 0.5) * visibleWidth, y: -(lm.y - 0.5) * visibleHeight, z: -lm.z * visibleWidth * 1.5 });
+                for (let i = 0; i < landmarksData.length; i++) {
+                    const pos = convertLandmark(landmarksData[i]);
+                    this.landmarks[i].position.set(pos.x, pos.y, pos.z);
+                }
+                for (let i = 0; i < HAND_CONNECTIONS.length; i++) {
+                    const start = convertLandmark(landmarksData[HAND_CONNECTIONS[i][0]]);
+                    const end = convertLandmark(landmarksData[HAND_CONNECTIONS[i][1]]);
+                    const startVec = new THREE.Vector3(start.x, start.y, start.z);
+                    const endVec = new THREE.Vector3(end.x, end.y, end.z);
+                    const cylinder = this.connections[i];
+                    const distance = startVec.distanceTo(endVec);
+                    cylinder.position.copy(startVec).lerp(endVec, 0.5);
+                    cylinder.scale.y = distance;
+                    cylinder.lookAt(endVec);
+                    cylinder.rotateX(Math.PI / 2);
+                }
+            }
+            hide() { this.group.visible = false; }
+        }
+
+        // --- Function to create the 3D Guitar Model ---
+        function createGuitar() {
+            const guitarGroup = new THREE.Group();
+            const bodyMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513, roughness: 0.6, metalness: 0.1 });
+            const neckMaterial = new THREE.MeshStandardMaterial({ color: 0xD2B48C, roughness: 0.8 });
+            const detailsMaterial = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.4 });
+            const bodyGeometry = new THREE.BoxGeometry(0.6, 0.8, 0.1);
+            const bodyMesh = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            guitarGroup.add(bodyMesh);
+            const soundholeGeo = new THREE.CylinderGeometry(0.1, 0.1, 0.12, 32);
+            const soundholeMesh = new THREE.Mesh(soundholeGeo, detailsMaterial);
+            soundholeMesh.rotation.x = Math.PI / 2;
+            soundholeMesh.position.y = 0.1;
+            guitarGroup.add(soundholeMesh);
+            const neckGeometry = new THREE.BoxGeometry(0.12, 1.0, 0.08);
+            const neckMesh = new THREE.Mesh(neckGeometry, neckMaterial);
+            neckMesh.position.y = 0.9;
+            guitarGroup.add(neckMesh);
+            const headstockGeo = new THREE.BoxGeometry(0.14, 0.2, 0.08);
+            const headstockMesh = new THREE.Mesh(headstockGeo, neckMaterial);
+            headstockMesh.position.y = 1.45;
+            guitarGroup.add(headstockMesh);
+            return guitarGroup;
+        }
+        
+        function setup() {
+            setupThreeJS();
+            setupMediaPipeHands();
+            setupEventListeners();
+            animate();
+        }
+
+        function setupEventListeners() {
+            switchHandednessBtn.addEventListener('click', () => {
+                isRightHandedMode = !isRightHandedMode;
+                switchHandednessBtn.textContent = isRightHandedMode ? 'Switch to Left-Handed' : 'Switch to Right-Handed';
+            });
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function setupThreeJS() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 0, 1.5);
+            renderer = new THREE.WebGLRenderer({ canvas: canvasElement, antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
+            directionalLight.position.set(0, 2, 3);
+            scene.add(directionalLight);
+
+            rightHandModel = new HandModel(0x00ffff);
+            leftHandModel = new HandModel(0xff00ff);
+            guitarModel = createGuitar();
+            guitarModel.visible = false;
+            
+            const handsGroup = new THREE.Group();
+            handsGroup.scale.x = -1;
+            handsGroup.add(leftHandModel.group);
+            handsGroup.add(rightHandModel.group);
+            handsGroup.add(guitarModel);
+            scene.add(handsGroup);
+            
+            const gridHelper = new THREE.GridHelper(10, 20, 0x555555, 0x333333);
+            gridHelper.position.y = -1.5;
+            gridHelper.rotation.x = Math.PI / 4;
+            scene.add(gridHelper);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function onResults(results) {
+            spinner.style.display = 'none';
+            leftHandModel.hide();
+            rightHandModel.hide();
+            guitarModel.visible = false;
+            signDisplayLeft.textContent = '';
+            signDisplayRight.textContent = '';
+
+            const visibleHeight = 2 * Math.tan(MathUtils.degToRad(camera.fov / 2)) * camera.position.z;
+            const visibleWidth = visibleHeight * camera.aspect;
+            const convert = (lm) => ({ x: (lm.x - 0.5) * visibleWidth, y: -(lm.y - 0.5) * visibleHeight, z: -lm.z * visibleWidth * 1.5 });
+
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                statusIndicator.style.display = 'none';
+
+                if (results.multiHandLandmarks.length === 2) {
+                    guitarModel.visible = true;
+                    const hand1 = results.multiHandLandmarks[0];
+                    const handedness1 = results.multiHandedness[0].label;
+                    const hand2 = results.multiHandLandmarks[1];
+                    
+                    const rightHandLandmarksData = handedness1 === 'Right' ? hand1 : hand2;
+                    const leftHandLandmarksData = handedness1 === 'Left' ? hand1 : hand2;
+                    
+                    rightHandModel.update(rightHandLandmarksData, visibleWidth, visibleHeight);
+                    leftHandModel.update(leftHandLandmarksData, visibleWidth, visibleHeight);
+
+                    const leftSign = recognizeSignLanguage(leftHandLandmarksData, 'Left');
+                    const rightSign = recognizeSignLanguage(rightHandLandmarksData, 'Right');
+                    isRepositioning = (leftSign === 'A' && rightSign === 'A');
+
+                    let strumHandLandmarks, neckHandLandmarks;
+                    if (isRightHandedMode) {
+                        strumHandLandmarks = rightHandLandmarksData;
+                        neckHandLandmarks = leftHandLandmarksData;
+                    } else {
+                        strumHandLandmarks = leftHandLandmarksData;
+                        neckHandLandmarks = rightHandLandmarksData;
+                    }
+
+                    const neckPoint = convert(neckHandLandmarks[9]);
+                    const neckVec = new THREE.Vector3(neckPoint.x, neckPoint.y, neckPoint.z);
+                    const strumPoint = convert(strumHandLandmarks[0]);
+                    const strumVec = new THREE.Vector3(strumPoint.x, strumPoint.y, strumPoint.z);
+
+                    // --- Orientation Physics (applies to both modes) ---
+                    const guitarYAxis = new THREE.Vector3().subVectors(neckVec, strumVec);
+                    const distance = guitarYAxis.length();
+                    guitarYAxis.normalize();
+
+                    // --- New Camera-Facing Rotation Logic ---
+                    // This keeps the guitar's face oriented towards the camera, preventing it from pointing up.
+                    const viewDirection = new THREE.Vector3(0, 0, 1); // Vector pointing out of the screen
+
+                    // We want the guitar's Z-axis (it's "front") to be in the plane defined by the neck and the view direction,
+                    // and also be perpendicular to the neck. We can find this by projecting the view direction
+                    // onto the plane that is perpendicular to the neck.
+                    const projection = viewDirection.clone().projectOnVector(guitarYAxis);
+                    const guitarZAxis = viewDirection.clone().sub(projection).normalize();
+
+                    // Edge case: If the neck points directly at the camera, the projection is the whole vector,
+                    // and the result is a zero-length vector, which can't be normalized. We need a fallback.
+                    if (guitarZAxis.lengthSq() < 0.001) {
+                        // When the neck is aligned with the view direction, the guitar can be rotated freely around it.
+                        // We'll choose a default orientation where the guitar's "side" (X-axis) is horizontal.
+                        const worldX = new THREE.Vector3(1, 0, 0);
+                        const projectionX = worldX.clone().projectOnVector(guitarYAxis);
+                        // We use the same projection technique with the world's X-axis to find a valid Z-axis.
+                        guitarZAxis.copy(worldX).sub(projectionX).normalize();
+                    }
+
+                    // The guitar's side-to-side axis (X-axis) is then perpendicular to the neck (Y) and the new front-face (Z) vectors.
+                    const guitarXAxis = new THREE.Vector3().crossVectors(guitarYAxis, guitarZAxis).normalize();
+
+                    const rotationMatrix = new THREE.Matrix4();
+                    rotationMatrix.makeBasis(guitarXAxis, guitarYAxis, guitarZAxis);
+                    guitarModel.quaternion.setFromRotationMatrix(rotationMatrix);
+                    
+                    if (isRepositioning) {
+                        // --- Repositioning Mode (Fists) ---
+                        // Scale with distance
+                        const scale = distance * 1.1;
+                        lastGuitarScale = scale; // Store the new scale
+                        guitarModel.scale.set(scale, scale, scale);
+                        // Position at the midpoint between hands
+                        const midPoint = new THREE.Vector3().addVectors(strumVec, neckVec).multiplyScalar(0.5);
+                        guitarModel.position.copy(midPoint);
+
+                    } else {
+                        // --- Default Playing Mode ---
+                        // Use last known scale
+                        guitarModel.scale.set(lastGuitarScale, lastGuitarScale, lastGuitarScale);
+                        // Position the guitar so the strumming hand is near the base of the body.
+                        // We define an offset from the guitar's center to its base in local space.
+                        const localOffset = new THREE.Vector3(0, -0.4, 0); // Body base is at -0.4y
+                        
+                        // Scale this offset by the current guitar scale.
+                        localOffset.multiplyScalar(lastGuitarScale);
+                        
+                        // Apply the guitar's current rotation to this offset to get the world-space offset.
+                        const worldOffset = localOffset.clone().applyQuaternion(guitarModel.quaternion);
+                        
+                        // The final position of the guitar's center is the hand's position minus the world offset.
+                        guitarModel.position.copy(strumVec.clone().sub(worldOffset));
+                    }
+
+                } else { // --- ONLY ONE HAND DETECTED: SHOW SIGN ---
+                    const landmarks = results.multiHandLandmarks[0];
+                    const handedness = results.multiHandedness[0].label;
+                    const sign = recognizeSignLanguage(landmarks, handedness);
+                    if (handedness === 'Right') {
+                        rightHandModel.update(landmarks, visibleWidth, visibleHeight);
+                        signDisplayLeft.textContent = sign;
+                    } else {
+                        leftHandModel.update(landmarks, visibleWidth, visibleHeight);
+                        signDisplayRight.textContent = sign;
+                    }
+                }
+            } else {
+                statusIndicator.style.display = 'block';
+                statusText.textContent = 'Show one hand for ASL, or two to play the guitar!';
+            }
+        }
+
+        function recognizeSignLanguage(landmarks, handedness) {
+            const fingersUp = [];
+            const tipIds = [4, 8, 12, 16, 20];
+            for (let i = 1; i < 5; i++) { if (landmarks[tipIds[i]].y < landmarks[tipIds[i] - 2].y) { fingersUp.push(i); } }
+            if (handedness === 'Right') { if (landmarks[tipIds[0]].x < landmarks[tipIds[0] - 1].x) { fingersUp.push(0); }
+            } else { if (landmarks[tipIds[0]].x > landmarks[tipIds[0] - 1].x) { fingersUp.push(0); } }
+            if (fingersUp.length === 5) return 'B'; if (fingersUp.length === 0) return 'A';
+            if (fingersUp.length === 1 && fingersUp.includes(1)) return 'D'; if (fingersUp.length === 1 && fingersUp.includes(4)) return 'I';
+            if (fingersUp.length === 2 && fingersUp.includes(0) && fingersUp.includes(1)) return 'L';
+            if (fingersUp.length === 2 && fingersUp.includes(1) && fingersUp.includes(2)) return 'V';
+            if (fingersUp.length === 3 && fingersUp.includes(1) && fingersUp.includes(2) && fingersUp.includes(3)) return 'W';
+            if (fingersUp.length === 2 && fingersUp.includes(0) && fingersUp.includes(4)) return 'Y';
+            return '';
+        }
+
+        function setupMediaPipeHands() {
+            const hands = new window.Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
+            hands.setOptions({ maxNumHands: 2, modelComplexity: 1, minDetectionConfidence: 0.6, minTrackingConfidence: 0.6 });
+            hands.onResults(onResults);
+            const cameraUtil = new window.Camera(videoElement, { onFrame: async () => { await hands.send({ image: videoElement }); }, width: 1280, height: 720 });
+            cameraUtil.start();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+        }
+        
+        setup();
+    </script>
+</body>
+</html>
+
+
+
+

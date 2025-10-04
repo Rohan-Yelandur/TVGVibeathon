@@ -1,50 +1,190 @@
 import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import './Piano.css';
 
-const pianoKeys = [
-  // Octave 4
-  { name: 'C4', type: 'white' },
-  { name: 'C#4', type: 'black' },
-  { name: 'D4', type: 'white' },
-  { name: 'D#4', type: 'black' },
-  { name: 'E4', type: 'white' },
-  { name: 'F4', type: 'white' },
-  { name: 'F#4', type: 'black' },
-  { name: 'G4', type: 'white' },
-  { name: 'G#4', type: 'black' },
-  { name: 'A4', type: 'white' },
-  { name: 'A#4', type: 'black' },
-  { name: 'B4', type: 'white' },
-  // Octave 5
-  { name: 'C5', type: 'white' },
-  { name: 'C#5', type: 'black' },
-  { name: 'D5', type: 'white' },
-  { name: 'D#5', type: 'black' },
-  { name: 'E5', type: 'white' },
-  { name: 'F5', type: 'white' },
-  { name: 'F#5', type: 'black' },
-  { name: 'G5', type: 'white' },
-  { name: 'G#5', type: 'black' },
-  { name: 'A5', type: 'white' },
-  { name: 'A#5', type: 'black' },
-  { name: 'B5', type: 'white' },
+// Defines the layout of a single octave on a piano
+const pianoLayout = [
+  { note: 'C', type: 'white' },
+  { note: 'C#', type: 'black' },
+  { note: 'D', type: 'white' },
+  { note: 'D#', type: 'black' },
+  { note: 'E', type: 'white' },
+  { note: 'F', type: 'white' },
+  { note: 'F#', type: 'black' },
+  { note: 'G', type: 'white' },
+  { note: 'G#', type: 'black' },
+  { note: 'A', type: 'white' },
+  { note: 'A#', type: 'black' },
+  { note: 'B', type: 'white' },
 ];
 
-const whiteKeys = pianoKeys.filter(k => k.type === 'white');
-const blackKeys = pianoKeys.filter(k => k.type === 'black');
+const createPianoKeys = (startOctave, numOctaves) => {
+  const keys = [];
+  for (let i = 0; i < numOctaves; i++) {
+    const octave = startOctave + i;
+    pianoLayout.forEach(key => {
+      keys.push({
+        ...key,
+        name: `${key.note}${octave}`,
+        octave: octave,
+      });
+    });
+  }
+  // Add the first key of the next octave for a more complete look
+  const finalOctave = startOctave + numOctaves;
+  keys.push({
+    note: 'C',
+    type: 'white',
+    name: `C${finalOctave}`,
+    octave: finalOctave
+  });
+  return keys;
+};
+
+const pianoKeys = createPianoKeys(4, 2); // Create 2 octaves starting from octave 4
 
 const Piano = forwardRef(({ onKeyPlayed }, ref) => {
   const [pressedKeys, setPressedKeys] = useState({});
-  const pianoRef = useRef(null);
+  const canvasRef = useRef(null);
   const keyRectsRef = useRef([]);
+  const animationFrameRef = useRef(null);
 
+  const drawPiano = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const { width, height } = canvas;
+
+    ctx.clearRect(0, 0, width, height);
+
+    // Draw background
+    const bgGradient = ctx.createLinearGradient(0, 0, 0, height);
+    bgGradient.addColorStop(0, 'rgba(255, 255, 255, 0.1)');
+    bgGradient.addColorStop(1, 'rgba(255, 255, 255, 0.2)');
+    ctx.fillStyle = bgGradient;
+    ctx.fillRect(0, 0, width, height);
+    ctx.strokeStyle = 'rgba(184, 192, 255, 0.3)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(0, 0, width, height);
+
+
+    // Draw white keys first
+    keyRectsRef.current.forEach(keyInfo => {
+      const { key, rect } = keyInfo;
+      const keyData = pianoKeys.find(pk => pk.name === key);
+      if (!keyData || keyData.type !== 'white') return;
+
+      const isPressed = pressedKeys[key];
+      const intensity = isPressed ? pressedKeys[key] : 0;
+
+      ctx.save();
+
+      // Draw white key
+      ctx.fillStyle = '#f8f8f8';
+      ctx.fillRect(rect.left, rect.top, rect.width, rect.height);
+      ctx.strokeStyle = '#999';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(rect.left, rect.top, rect.width, rect.height);
+
+      // Draw highlight for white keys
+      if (isPressed) {
+        const highlightGradient = ctx.createLinearGradient(rect.left, rect.top, rect.left, rect.bottom);
+        highlightGradient.addColorStop(0, 'rgba(123, 104, 238, 0)');
+        highlightGradient.addColorStop(1, `rgba(123, 104, 238, ${intensity * 0.7})`);
+        ctx.fillStyle = highlightGradient;
+        ctx.fillRect(rect.left, rect.top, rect.width, rect.height);
+
+        // Add a glow effect
+        ctx.shadowColor = 'rgba(123, 104, 238, 0.8)';
+        ctx.shadowBlur = 15 * intensity;
+        ctx.fillStyle = `rgba(220, 220, 255, ${intensity * 0.4})`;
+        ctx.fillRect(rect.left, rect.top, rect.width, rect.height);
+      }
+      
+      ctx.restore();
+
+      // Draw label for white keys
+      ctx.save();
+      ctx.font = 'bold 12px Montserrat';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#333';
+      ctx.shadowColor = 'rgba(255,255,255,0.7)';
+      ctx.shadowBlur = 2;
+      ctx.fillText(keyData.note, rect.left + rect.width / 2, height - 15);
+      ctx.restore();
+    });
+
+    // Draw black keys on top
+    keyRectsRef.current.forEach(keyInfo => {
+      const { key, rect } = keyInfo;
+      const keyData = pianoKeys.find(pk => pk.name === key);
+      if (!keyData || keyData.type !== 'black') return;
+
+      const isPressed = pressedKeys[key];
+      const intensity = isPressed ? pressedKeys[key] : 0;
+
+      ctx.save();
+
+      // Draw black key with gradient
+      const gradient = ctx.createLinearGradient(rect.left, rect.top, rect.left, rect.bottom);
+      gradient.addColorStop(0, '#1a1a1a');
+      gradient.addColorStop(1, '#000000');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(rect.left, rect.top, rect.width, rect.height);
+      
+      // Black key border
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(rect.left, rect.top, rect.width, rect.height);
+
+      // Draw highlight for black keys
+      if (isPressed) {
+        const highlightGradient = ctx.createLinearGradient(rect.left, rect.top, rect.left, rect.bottom);
+        highlightGradient.addColorStop(0, 'rgba(123, 104, 238, 0)');
+        highlightGradient.addColorStop(1, `rgba(123, 104, 238, ${intensity * 0.9})`);
+        ctx.fillStyle = highlightGradient;
+        ctx.fillRect(rect.left, rect.top, rect.width, rect.height);
+
+        // Add a glow effect for black keys
+        ctx.shadowColor = 'rgba(123, 104, 238, 1)';
+        ctx.shadowBlur = 20 * intensity;
+        ctx.fillStyle = `rgba(200, 180, 255, ${intensity * 0.6})`;
+        ctx.fillRect(rect.left, rect.top, rect.width, rect.height);
+      }
+      
+      ctx.restore();
+
+      // Draw label for black keys
+      ctx.save();
+      ctx.font = 'bold 10px Montserrat';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#fff';
+      ctx.shadowColor = 'rgba(0,0,0,0.7)';
+      ctx.shadowBlur = 2;
+      ctx.fillText(keyData.note, rect.left + rect.width / 2, rect.bottom - 10);
+      ctx.restore();
+    });
+  };
+
+  // Calculate the positions of each key
   useEffect(() => {
     const calculateKeyRects = () => {
-      if (!pianoRef.current) return;
-      const pianoRect = pianoRef.current.getBoundingClientRect();
-      const whiteKeyWidth = pianoRect.width / whiteKeys.length;
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      // Set canvas resolution
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      const ctx = canvas.getContext('2d');
+      ctx.scale(dpr, dpr);
+      
+      const { width, height } = canvas.getBoundingClientRect();
+
+      const whiteKeys = pianoKeys.filter(k => k.type === 'white');
+      const whiteKeyWidth = width / whiteKeys.length;
       const blackKeyWidth = whiteKeyWidth * 0.6;
-      const blackKeyHeight = pianoRect.height * 0.6;
+      const blackKeyHeight = height * 0.6;
 
       const rects = [];
       let whiteKeyIndex = 0;
@@ -53,164 +193,179 @@ const Piano = forwardRef(({ onKeyPlayed }, ref) => {
         if (key.type === 'white') {
           rects.push({
             key: key.name,
-            type: 'white',
             rect: {
               left: whiteKeyIndex * whiteKeyWidth,
               top: 0,
               right: (whiteKeyIndex + 1) * whiteKeyWidth,
-              bottom: pianoRect.height,
+              bottom: height,
               width: whiteKeyWidth,
-              height: pianoRect.height,
+              height: height,
             }
           });
           whiteKeyIndex++;
         }
       });
 
-      let blackKeyIndex = 0;
-      pianoKeys.forEach(key => {
+      // Black keys are positioned between white keys
+      const whiteKeyRects = rects.slice(); // Copy of white key rects
+      pianoKeys.forEach((key, index) => {
         if (key.type === 'black') {
-          const precedingWhiteKeyIndex = whiteKeys.findIndex(wk => wk.name.charAt(0) === key.name.charAt(0));
-          
-          // Don't draw black keys for E and B
-          if (key.name.includes('E#') || key.name.includes('B#')) {
-            return;
-          }
-
-          const left = (precedingWhiteKeyIndex + 1) * whiteKeyWidth - (blackKeyWidth / 2);
-          
-          rects.push({
-            key: key.name,
-            type: 'black',
-            rect: {
-              left: left,
-              top: 0,
-              right: left + blackKeyWidth,
-              bottom: blackKeyHeight,
-              width: blackKeyWidth,
-              height: blackKeyHeight,
+          // Find the white key to the left of this black key
+          let leftWhiteKeyIndex = -1;
+          for (let i = index - 1; i >= 0; i--) {
+            if (pianoKeys[i].type === 'white' && pianoKeys[i].octave === key.octave) {
+              leftWhiteKeyIndex = i;
+              break;
             }
-          });
-          blackKeyIndex++;
+          }
+          
+          if (leftWhiteKeyIndex !== -1) {
+            const leftWhiteKey = pianoKeys[leftWhiteKeyIndex];
+            const leftWhiteKeyRect = whiteKeyRects.find(r => r.key === leftWhiteKey.name)?.rect;
+            
+            if (leftWhiteKeyRect) {
+              // Position black key between the left white key and the next white key
+              const left = leftWhiteKeyRect.right - (blackKeyWidth / 2);
+              rects.push({
+                key: key.name,
+                rect: {
+                  left: left,
+                  top: 0,
+                  right: left + blackKeyWidth,
+                  bottom: blackKeyHeight,
+                  width: blackKeyWidth,
+                  height: blackKeyHeight,
+                }
+              });
+            }
+          }
         }
       });
+
       keyRectsRef.current = rects;
+      drawPiano();
     };
 
     calculateKeyRects();
     window.addEventListener('resize', calculateKeyRects);
-    return () => window.removeEventListener('resize', calculateKeyRects);
-  }, []);
 
-  useImperativeHandle(ref, () => ({
-    getKeyFromCoords: (x, y) => {
-      if (!pianoRef.current) return null;
-      const pianoRect = pianoRef.current.getBoundingClientRect();
-      
-      const relativeX = x * pianoRect.width;
-      const relativeY = y * pianoRect.height;
+    const renderLoop = () => {
+      drawPiano();
+      animationFrameRef.current = requestAnimationFrame(renderLoop);
+    };
+    renderLoop();
 
-      const pressed = [];
-
-      // Check black keys first since they are on top
-      const blackKey = keyRectsRef.current.find(
-        k => k.type === 'black' &&
-        relativeX >= k.rect.left &&
-        relativeX <= k.rect.right &&
-        relativeY >= k.rect.top &&
-        relativeY <= k.rect.bottom
-      );
-
-      if (blackKey) {
-        const intensity = (relativeY - blackKey.rect.top) / blackKey.rect.height;
-        pressed.push({ key: blackKey.key, intensity: Math.max(0, Math.min(1, intensity)) });
-      } else {
-        // Check white keys
-        const whiteKey = keyRectsRef.current.find(
-          k => k.type === 'white' &&
-          relativeX >= k.rect.left &&
-          relativeX <= k.rect.right &&
-          relativeY >= k.rect.top &&
-          relativeY <= k.rect.bottom
-        );
-        if (whiteKey) {
-          const intensity = (relativeY - whiteKey.rect.top) / whiteKey.rect.height;
-          pressed.push({ key: whiteKey.key, intensity: Math.max(0, Math.min(1, intensity)) });
-        }
+    return () => {
+      window.removeEventListener('resize', calculateKeyRects);
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
       }
-      
-      return pressed.length > 0 ? pressed : null;
-    },
-    updatePressedKeys: (fingertips) => {
-      if (!pianoRef.current) return;
-      const pianoRect = pianoRef.current.getBoundingClientRect();
+    }
+  }, [pressedKeys]);
+
+  // Expose a function to the parent component to update pressed keys
+  useImperativeHandle(ref, () => ({
+    updatePressedKeys: (landmarks) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const pianoRect = canvas.getBoundingClientRect();
       const newPressedKeys = {};
-      
-      if (fingertips) {
-        fingertips.forEach(tip => {
-          const relativeX = tip.x * pianoRect.width;
-          const relativeY = tip.y * pianoRect.height;
 
-          // Check black keys first
-          const blackKey = keyRectsRef.current.find(k => k.type === 'black' && relativeX >= k.rect.left && relativeX <= k.rect.right && relativeY >= k.rect.top && relativeY <= k.rect.bottom);
+      if (landmarks && landmarks.length > 0) {
+        // Process each hand
+        landmarks.forEach(hand => {
+          // Define finger joints: [fingertip, DIP joint]
+          // Excluding thumbs (indices 4, 3)
+          const fingerJoints = [
+            [hand[8], hand[7]],   // Index finger: tip (8), DIP (7)
+            [hand[12], hand[11]], // Middle finger: tip (12), DIP (11)
+            [hand[16], hand[15]], // Ring finger: tip (16), DIP (15)
+            [hand[20], hand[19]]  // Pinky finger: tip (20), DIP (19)
+          ];
 
-          if (blackKey) {
-            const intensity = Math.max(0, Math.min(1, (relativeY - blackKey.rect.top) / blackKey.rect.height));
-            newPressedKeys[blackKey.key] = intensity;
-          } else {
-            // Check white keys
-            const whiteKey = keyRectsRef.current.find(k => k.type === 'white' && relativeX >= k.rect.left && relativeX <= k.rect.right && relativeY >= k.rect.top && relativeY <= k.rect.bottom);
-            if (whiteKey) {
-              const intensity = Math.max(0, Math.min(1, (relativeY - whiteKey.rect.top) / whiteKey.rect.height));
-              newPressedKeys[whiteKey.key] = intensity;
+          // Check each finger
+          for (const joints of fingerJoints) {
+            let fingerPressedKey = false;
+            
+            // Check each joint in the finger (tip and DIP)
+            for (const joint of joints) {
+              if (fingerPressedKey) continue; // Once a key is pressed by this finger, stop checking
+              if (!joint) continue;
+
+              // The video is mirrored, so we need to flip the x-coordinate
+              const relativeX = (1 - joint.x) * pianoRect.width;
+              const relativeY = joint.y * pianoRect.height;
+
+              // Find which key is being touched, prioritizing black keys
+              let touchedKey = null;
+              
+              // Check black keys first (they're on top)
+              for (const keyInfo of keyRectsRef.current) {
+                const keyData = pianoKeys.find(pk => pk.name === keyInfo.key);
+                if (keyData && keyData.type === 'black') {
+                  const rect = keyInfo.rect;
+                  if (relativeX >= rect.left && relativeX <= rect.right &&
+                      relativeY >= rect.top && relativeY <= rect.bottom) {
+                    touchedKey = keyInfo;
+                    break;
+                  }
+                }
+              }
+
+              // If no black key was touched, check white keys
+              if (!touchedKey) {
+                for (const keyInfo of keyRectsRef.current) {
+                  const keyData = pianoKeys.find(pk => pk.name === keyInfo.key);
+                  if (keyData && keyData.type === 'white') {
+                    const rect = keyInfo.rect;
+                    if (relativeX >= rect.left && relativeX <= rect.right &&
+                        relativeY >= rect.top && relativeY <= rect.bottom) {
+                      touchedKey = keyInfo;
+                      break;
+                    }
+                  }
+                }
+              }
+
+              if (touchedKey) {
+                const keyRect = touchedKey.rect;
+                // Calculate press depth based on vertical position within the key
+                const distanceFromTop = relativeY - keyRect.top;
+                const pressDepth = Math.max(0, Math.min(1, distanceFromTop / keyRect.height));
+                
+                // Apply exponential curve for more realistic volume (like the working example)
+                const clampedDepth = Math.max(0, Math.min(1, pressDepth * 1.5));
+                const intensity = Math.pow(clampedDepth, 2);
+                
+                // Store or update the intensity for this key (keep the highest intensity)
+                if (!newPressedKeys[touchedKey.key] || newPressedKeys[touchedKey.key] < intensity) {
+                  newPressedKeys[touchedKey.key] = intensity;
+                }
+                
+                fingerPressedKey = true; // Mark that this finger has pressed a key
+              }
             }
           }
         });
       }
 
-      setPressedKeys(newPressedKeys);
+      setPressedKeys(prev => {
+        // Only update if there's a change to avoid re-renders
+        if (JSON.stringify(prev) !== JSON.stringify(newPressedKeys)) {
+          return newPressedKeys;
+        }
+        return prev;
+      });
+
       if (onKeyPlayed) {
         onKeyPlayed(newPressedKeys);
       }
     }
   }));
 
-  const renderKey = (key) => {
-    const isPressed = pressedKeys[key.name];
-    const intensity = isPressed ? pressedKeys[key.name] : 0;
-    const style = {
-      '--highlight-opacity': intensity,
-    };
-
-    return (
-      <div key={key.name} className={`key ${key.type}-key`} style={style}>
-        <div className="key-name">{key.name}</div>
-      </div>
-    );
-  };
-
   return (
-    <div className="piano-container" ref={pianoRef}>
-      <div className="keys-wrapper">
-        {whiteKeys.map(renderKey)}
-        {blackKeys.map(key => {
-          const precedingWhiteKeyIndex = whiteKeys.findIndex(wk => wk.name.charAt(0) === key.name.charAt(0));
-          if (key.name.includes('E#') || key.name.includes('B#')) return null;
-          
-          const isPressed = pressedKeys[key.name];
-          const intensity = isPressed ? pressedKeys[key.name] : 0;
-          
-          const style = {
-            left: `calc(${(precedingWhiteKeyIndex + 1) * (100 / whiteKeys.length)}% - 1.25%)`,
-            '--highlight-opacity': intensity,
-          };
-          return (
-            <div key={key.name} className="key black-key" style={style}>
-               <div className="key-name">{key.name}</div>
-            </div>
-          );
-        })}
-      </div>
+    <div className="piano-container">
+      <canvas ref={canvasRef} className="piano-canvas" />
     </div>
   );
 });

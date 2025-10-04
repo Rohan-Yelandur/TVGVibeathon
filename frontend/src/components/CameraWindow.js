@@ -1,18 +1,48 @@
 import React, { useEffect, useRef, useState } from 'react';
 import './CameraWindow.css';
 import HandTracking from './HandTracking';
-import Piano from './Piano';
 import Guitar from './Guitar';
+import Piano from './Piano';
 
-const CameraWindow = () => {
+const CameraWindow = ({ onFullscreenChange }) => {
   const videoRef = useRef(null);
-  const pianoRef = useRef(null);
   const guitarRef = useRef(null);
+  const pianoRef = useRef(null);
   const cameraWindowRef = useRef(null);
   const [cameraStatus, setCameraStatus] = useState('idle'); // idle, requesting, active, error
   const [errorMessage, setErrorMessage] = useState('');
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [selectedInstrument, setSelectedInstrument] = useState('piano');
+  const [selectedInstrument, setSelectedInstrument] = useState('guitar');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  const handleHandsDetected = (landmarks) => {
+    // Get the ref for the currently selected instrument
+    const currentInstrumentRef = selectedInstrument === 'piano' ? pianoRef : guitarRef;
+    
+    if (!currentInstrumentRef.current) return;
+
+    if (landmarks && landmarks.length > 0) {
+      if (selectedInstrument === 'piano') {
+        // For piano, pass raw landmarks so Piano component can extract finger joints
+        currentInstrumentRef.current.updatePressedKeys(landmarks);
+      } else {
+        // For guitar, extract fingertips (including thumb)
+        const fingertips = [];
+        const fingertipIndices = [4, 8, 12, 16, 20];
+        
+        landmarks.forEach(hand => {
+          fingertipIndices.forEach(index => {
+            fingertips.push(hand[index]);
+          });
+        });
+
+        currentInstrumentRef.current.updatePressedKeys(fingertips);
+      }
+    } else {
+      // No hands detected, clear all pressed keys
+      currentInstrumentRef.current.updatePressedKeys(null);
+    }
+  };
 
   const startCamera = async () => {
     setCameraStatus('requesting');
@@ -92,7 +122,12 @@ const CameraWindow = () => {
   // Listen for fullscreen changes
   useEffect(() => {
     const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
+      const fullscreenActive = !!document.fullscreenElement;
+      setIsFullscreen(fullscreenActive);
+      // Notify parent component about fullscreen state change
+      if (onFullscreenChange) {
+        onFullscreenChange(fullscreenActive);
+      }
     };
 
     document.addEventListener('fullscreenchange', handleFullscreenChange);
@@ -104,7 +139,21 @@ const CameraWindow = () => {
       document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
       document.removeEventListener('msfullscreenchange', handleFullscreenChange);
     };
-  }, []);
+  }, [onFullscreenChange]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (isDropdownOpen && !event.target.closest('.instrument-selector')) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isDropdownOpen]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -113,39 +162,9 @@ const CameraWindow = () => {
     };
   }, []);
 
-  const handleHandsDetected = (landmarks) => {
-    // Get the ref for the currently selected instrument
-    const currentInstrumentRef = selectedInstrument === 'piano' ? pianoRef : guitarRef;
-    
-    if (currentInstrumentRef.current && landmarks) {
-      const fingertips = [];
-      const fingertipIndices = [4, 8, 12, 16, 20]; // Indices for fingertips
-      
-      landmarks.forEach(hand => {
-        fingertipIndices.forEach(index => {
-          fingertips.push(hand[index]);
-        });
-      });
-
-      currentInstrumentRef.current.updatePressedKeys(fingertips);
-    } else if (currentInstrumentRef.current) {
-      currentInstrumentRef.current.updatePressedKeys(null);
-    }
-  };
-
   return (
     <section className="camera-section">
       <div className="camera-container glass-card bounce-in">
-        <div className="camera-header">
-          <h2>Jump on Stage!</h2>
-          <p>
-            {cameraStatus === 'idle' && 'Ready to start'}
-            {cameraStatus === 'requesting' && 'Requesting camera access...'}
-            {cameraStatus === 'active' && 'Camera active'}
-            {cameraStatus === 'error' && 'Camera error'}
-          </p>
-        </div>
-
         <div className="camera-window" ref={cameraWindowRef}>
           <video 
             ref={videoRef}
@@ -155,24 +174,20 @@ const CameraWindow = () => {
             className="camera-video"
             style={{ display: cameraStatus === 'active' ? 'block' : 'none' }}
           />
-          <HandTracking
+          <HandTracking 
             videoRef={videoRef}
             isActive={cameraStatus === 'active'}
             onHandsDetected={handleHandsDetected}
           />
-          {cameraStatus === 'active' && (
-            <>
-              <div style={{ display: selectedInstrument === 'piano' ? 'block' : 'none' }}>
-                <Piano ref={pianoRef} />
-              </div>
-              <div style={{ display: selectedInstrument === 'guitar' ? 'block' : 'none' }}>
-                <Guitar ref={guitarRef} />
-              </div>
-            </>
+          {cameraStatus === 'active' && selectedInstrument === 'guitar' && (
+            <Guitar ref={guitarRef} />
+          )}
+          {cameraStatus === 'active' && selectedInstrument === 'piano' && (
+            <Piano ref={pianoRef} />
           )}
           {cameraStatus === 'active' && (
-            <button
-              className="stop-camera-button"
+            <button 
+              className="stop-camera-button" 
               onClick={stopCamera}
               title="Stop Camera"
             >
@@ -191,14 +206,37 @@ const CameraWindow = () => {
           )}
           {cameraStatus === 'active' && (
             <div className="instrument-selector">
-              <select 
-                value={selectedInstrument}
-                onChange={(e) => setSelectedInstrument(e.target.value)}
-                className="instrument-dropdown"
+              <div 
+                className="instrument-dropdown-custom"
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
               >
-                <option value="piano">🎹 Piano</option>
-                <option value="guitar">🎸 Guitar</option>
-              </select>
+                <span className="selected-instrument">
+                  {selectedInstrument === 'piano' ? '🎹 Piano' : '🎸 Guitar'}
+                </span>
+                <span className="dropdown-arrow">{isDropdownOpen ? '▲' : '▼'}</span>
+              </div>
+              {isDropdownOpen && (
+                <div className="instrument-options">
+                  <div 
+                    className={`instrument-option ${selectedInstrument === 'piano' ? 'selected' : ''}`}
+                    onClick={() => {
+                      setSelectedInstrument('piano');
+                      setIsDropdownOpen(false);
+                    }}
+                  >
+                    🎹 Piano
+                  </div>
+                  <div 
+                    className={`instrument-option ${selectedInstrument === 'guitar' ? 'selected' : ''}`}
+                    onClick={() => {
+                      setSelectedInstrument('guitar');
+                      setIsDropdownOpen(false);
+                    }}
+                  >
+                    🎸 Guitar
+                  </div>
+                </div>
+              )}
             </div>
           )}
           {cameraStatus !== 'active' && (
@@ -207,7 +245,7 @@ const CameraWindow = () => {
                 {cameraStatus === 'requesting' ? '⏳' : '📸'}
               </div>
               <p className="placeholder-text">
-                {cameraStatus === 'idle' && 'Ready to start'}
+                {cameraStatus === 'idle' && 'Jump on Stage!'}
                 {cameraStatus === 'requesting' && 'Requesting camera access...'}
                 {cameraStatus === 'error' && errorMessage}
               </p>
