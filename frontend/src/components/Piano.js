@@ -265,10 +265,13 @@ const Piano = forwardRef(({ onKeyPlayed }, ref) => {
 
   // Expose a function to the parent component to update pressed keys
   useImperativeHandle(ref, () => ({
-    updatePressedKeys: (landmarks) => {
+    updatePressedKeys: (landmarks, videoElement) => {
       const canvas = canvasRef.current;
-      if (!canvas) return;
+      if (!canvas || !videoElement) return;
+      
+      // Get the bounding rectangles for coordinate mapping
       const pianoRect = canvas.getBoundingClientRect();
+      const videoRect = videoElement.getBoundingClientRect();
       const newPressedKeys = {};
 
       if (landmarks && landmarks.length > 0) {
@@ -292,9 +295,23 @@ const Piano = forwardRef(({ onKeyPlayed }, ref) => {
               if (fingerPressedKey) continue; // Once a key is pressed by this finger, stop checking
               if (!joint) continue;
 
-              // The video is mirrored, so we need to flip the x-coordinate
-              const relativeX = (1 - joint.x) * pianoRect.width;
-              const relativeY = joint.y * pianoRect.height;
+              // Step 1: Convert normalized MediaPipe coordinates (0-1) to video element coordinates
+              // MediaPipe coordinates are NOT mirrored in the data, so we mirror them
+              const videoX = (1 - joint.x) * videoRect.width;
+              const videoY = joint.y * videoRect.height;
+              
+              // Step 2: Convert video coordinates to absolute screen coordinates
+              const screenX = videoRect.left + videoX;
+              const screenY = videoRect.top + videoY;
+              
+              // Step 3: Convert screen coordinates to piano canvas coordinates
+              const pianoX = screenX - pianoRect.left;
+              const pianoY = screenY - pianoRect.top;
+              
+              // Step 4: Check if the finger is within the piano canvas bounds
+              if (pianoX < 0 || pianoX > pianoRect.width || pianoY < 0 || pianoY > pianoRect.height) {
+                continue; // Finger is outside the piano area
+              }
 
               // Find which key is being touched, prioritizing black keys
               let touchedKey = null;
@@ -304,8 +321,8 @@ const Piano = forwardRef(({ onKeyPlayed }, ref) => {
                 const keyData = pianoKeys.find(pk => pk.name === keyInfo.key);
                 if (keyData && keyData.type === 'black') {
                   const rect = keyInfo.rect;
-                  if (relativeX >= rect.left && relativeX <= rect.right &&
-                      relativeY >= rect.top && relativeY <= rect.bottom) {
+                  if (pianoX >= rect.left && pianoX <= rect.right &&
+                      pianoY >= rect.top && pianoY <= rect.bottom) {
                     touchedKey = keyInfo;
                     break;
                   }
@@ -318,8 +335,8 @@ const Piano = forwardRef(({ onKeyPlayed }, ref) => {
                   const keyData = pianoKeys.find(pk => pk.name === keyInfo.key);
                   if (keyData && keyData.type === 'white') {
                     const rect = keyInfo.rect;
-                    if (relativeX >= rect.left && relativeX <= rect.right &&
-                        relativeY >= rect.top && relativeY <= rect.bottom) {
+                    if (pianoX >= rect.left && pianoX <= rect.right &&
+                        pianoY >= rect.top && pianoY <= rect.bottom) {
                       touchedKey = keyInfo;
                       break;
                     }
@@ -330,7 +347,7 @@ const Piano = forwardRef(({ onKeyPlayed }, ref) => {
               if (touchedKey) {
                 const keyRect = touchedKey.rect;
                 // Calculate press depth based on vertical position within the key
-                const distanceFromTop = relativeY - keyRect.top;
+                const distanceFromTop = pianoY - keyRect.top;
                 const pressDepth = Math.max(0, Math.min(1, distanceFromTop / keyRect.height));
                 
                 // Apply exponential curve for more realistic volume (like the working example)

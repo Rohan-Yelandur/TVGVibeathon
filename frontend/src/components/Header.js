@@ -26,6 +26,9 @@ const Header = ({ isDarkMode, setIsDarkMode }) => {
     if (action === 'theme') {
       // Dark/Light mode disabled for now
       console.log('Theme toggle - Coming soon!');
+    } else if (action === 'home') {
+      console.log('Navigate to Home');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } else if (action === 'profile') {
       console.log('Navigate to Profile');
       // TODO: Add navigation to profile page
@@ -58,6 +61,25 @@ const Header = ({ isDarkMode, setIsDarkMode }) => {
 
         {isProfileOpen && (
           <div className="profile-dropdown">
+            <div 
+              className="profile-menu-item"
+              onClick={() => handleMenuItemClick('home')}
+            >
+              <svg 
+                className="menu-icon" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                <polyline points="9 22 9 12 15 12 15 22"/>
+              </svg>
+              <span>Home</span>
+            </div>
+
             <div 
               className="profile-menu-item"
               onClick={() => handleMenuItemClick('profile')}

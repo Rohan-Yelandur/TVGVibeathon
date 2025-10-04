@@ -9,11 +9,13 @@ const CameraWindow = ({ onFullscreenChange }) => {
   const guitarRef = useRef(null);
   const pianoRef = useRef(null);
   const cameraWindowRef = useRef(null);
+  const noHandsTimerRef = useRef(null);
   const [cameraStatus, setCameraStatus] = useState('idle'); // idle, requesting, active, error
   const [errorMessage, setErrorMessage] = useState('');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [selectedInstrument, setSelectedInstrument] = useState('guitar');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [showNoHandsError, setShowNoHandsError] = useState(false);
 
   const handleHandsDetected = (landmarks) => {
     // Get the ref for the currently selected instrument
@@ -22,9 +24,16 @@ const CameraWindow = ({ onFullscreenChange }) => {
     if (!currentInstrumentRef.current) return;
 
     if (landmarks && landmarks.length > 0) {
+      // Hands detected - clear any existing timer and hide error
+      if (noHandsTimerRef.current) {
+        clearTimeout(noHandsTimerRef.current);
+        noHandsTimerRef.current = null;
+      }
+      setShowNoHandsError(false);
+
       if (selectedInstrument === 'piano') {
-        // For piano, pass raw landmarks so Piano component can extract finger joints
-        currentInstrumentRef.current.updatePressedKeys(landmarks);
+        // For piano, pass raw landmarks AND video element for proper coordinate mapping
+        currentInstrumentRef.current.updatePressedKeys(landmarks, videoRef.current);
       } else {
         // For guitar, extract fingertips (including thumb)
         const fingertips = [];
@@ -39,8 +48,19 @@ const CameraWindow = ({ onFullscreenChange }) => {
         currentInstrumentRef.current.updatePressedKeys(fingertips);
       }
     } else {
-      // No hands detected, clear all pressed keys
-      currentInstrumentRef.current.updatePressedKeys(null);
+      // No hands detected - start or continue timer
+      if (!noHandsTimerRef.current && cameraStatus === 'active') {
+        noHandsTimerRef.current = setTimeout(() => {
+          setShowNoHandsError(true);
+        }, 2000); // 2 second delay
+      }
+
+      // Clear all pressed keys
+      if (selectedInstrument === 'piano') {
+        currentInstrumentRef.current.updatePressedKeys(null, videoRef.current);
+      } else {
+        currentInstrumentRef.current.updatePressedKeys(null);
+      }
     }
   };
 
@@ -88,6 +108,12 @@ const CameraWindow = ({ onFullscreenChange }) => {
       tracks.forEach(track => track.stop());
       videoRef.current.srcObject = null;
     }
+    // Clear the no hands timer
+    if (noHandsTimerRef.current) {
+      clearTimeout(noHandsTimerRef.current);
+      noHandsTimerRef.current = null;
+    }
+    setShowNoHandsError(false);
     setCameraStatus('idle');
   };
 
@@ -158,6 +184,9 @@ const CameraWindow = ({ onFullscreenChange }) => {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      if (noHandsTimerRef.current) {
+        clearTimeout(noHandsTimerRef.current);
+      }
       stopCamera();
     };
   }, []);
@@ -165,7 +194,7 @@ const CameraWindow = ({ onFullscreenChange }) => {
   return (
     <section className="camera-section">
       <div className="camera-container glass-card bounce-in">
-        <div className="camera-window" ref={cameraWindowRef}>
+        <div className={`camera-window ${showNoHandsError ? 'no-hands-detected' : ''}`} ref={cameraWindowRef}>
           <video 
             ref={videoRef}
             autoPlay
@@ -184,6 +213,13 @@ const CameraWindow = ({ onFullscreenChange }) => {
           )}
           {cameraStatus === 'active' && selectedInstrument === 'piano' && (
             <Piano ref={pianoRef} />
+          )}
+          {showNoHandsError && cameraStatus === 'active' && (
+            <div className="no-hands-warning">
+              <div className="warning-icon">👋</div>
+              <div className="warning-text">No hands detected</div>
+              <div className="warning-subtext">Show your hands to the camera</div>
+            </div>
           )}
           {cameraStatus === 'active' && (
             <button 
