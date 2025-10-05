@@ -84,10 +84,8 @@ const BlobBackground = ({ isActive = true }) => {
       '#A0C4FF', // sky blue
       '#CDB4DB', // dusty purple
       '#E0BBE4', // orchid
-      '#957DAD', // muted purple
       '#DFCCF1', // pale lavender
       '#9B9EE8', // periwinkle
-      '#B4A7D6', // lavender gray
       '#8FA3E8', // cornflower blue
       '#A89FD9', // wisteria
       '#7B92D4'  // medium slate blue
