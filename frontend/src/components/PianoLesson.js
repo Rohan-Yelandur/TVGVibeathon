@@ -43,6 +43,7 @@ const PIANO_LESSONS = {
 const PianoLesson = ({ lessonId, onExit }) => {
   const videoRef = useRef(null);
   const pianoRef = useRef(null);
+  const cameraWindowRef = useRef(null);
   const noHandsTimerRef = useRef(null);
   const correctKeysPressedTimeRef = useRef(null);
   const [cameraStatus, setCameraStatus] = useState('idle');
@@ -53,6 +54,7 @@ const PianoLesson = ({ lessonId, onExit }) => {
   const [showSuccess, setShowSuccess] = useState(false);
   const [lessonComplete, setLessonComplete] = useState(false);
   const [stepCompleted, setStepCompleted] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const lesson = PIANO_LESSONS[lessonId];
 
@@ -63,6 +65,17 @@ const PianoLesson = ({ lessonId, onExit }) => {
     return () => {
       // Cleanup on unmount
       stopCamera();
+      
+      // Exit fullscreen if active
+      if (document.fullscreenElement) {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) {
+          document.msExitFullscreen();
+        }
+      }
     };
   }, []);
 
@@ -127,6 +140,67 @@ const PianoLesson = ({ lessonId, onExit }) => {
     
     setCameraStatus('idle');
   };
+
+  const toggleFullscreen = async () => {
+    if (!cameraWindowRef.current) return;
+
+    try {
+      if (!isFullscreen) {
+        // Enter fullscreen
+        if (cameraWindowRef.current.requestFullscreen) {
+          await cameraWindowRef.current.requestFullscreen();
+        } else if (cameraWindowRef.current.webkitRequestFullscreen) {
+          await cameraWindowRef.current.webkitRequestFullscreen();
+        } else if (cameraWindowRef.current.msRequestFullscreen) {
+          await cameraWindowRef.current.msRequestFullscreen();
+        }
+      } else {
+        // Exit fullscreen
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+          await document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) {
+          await document.msExitFullscreen();
+        }
+      }
+    } catch (error) {
+      console.error('Fullscreen error:', error);
+    }
+  };
+
+  // Listen for fullscreen changes
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const fullscreenActive = !!document.fullscreenElement;
+      setIsFullscreen(fullscreenActive);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('msfullscreenchange', handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('msfullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
+  // Handle page visibility changes (tab switching)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden && cameraStatus === 'active') {
+        console.log('Tab hidden, stopping camera...');
+        stopCamera();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [cameraStatus]);
 
   const handleHandsDetected = (landmarks) => {
     if (!pianoRef.current) return;
@@ -250,7 +324,7 @@ const PianoLesson = ({ lessonId, onExit }) => {
       </div>
 
       <div className="camera-and-instruction">
-        <div className={`camera-window ${showNoHandsError ? 'no-hands-detected' : ''}`}>
+        <div className={`camera-window ${showNoHandsError ? 'no-hands-detected' : ''}`} ref={cameraWindowRef}>
           <video 
             ref={videoRef}
             autoPlay
@@ -266,6 +340,25 @@ const PianoLesson = ({ lessonId, onExit }) => {
           />
           {cameraStatus === 'active' && (
             <Piano ref={pianoRef} onKeyPlayed={handleKeyPlayed} />
+          )}
+          {cameraStatus === 'active' && (
+            <button 
+              className="stop-camera-button" 
+              onClick={stopCamera}
+              title="Stop Camera"
+            >
+              ✕
+            </button>
+          )}
+          {/* Show fullscreen button when camera is active OR when in fullscreen mode */}
+          {(cameraStatus === 'active' || isFullscreen) && (
+            <button 
+              className="fullscreen-button" 
+              onClick={toggleFullscreen}
+              title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+            >
+              {isFullscreen ? '⇱' : '⤢'}
+            </button>
           )}
           
           {/* Instruction Overlay */}

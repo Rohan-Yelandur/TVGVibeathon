@@ -197,6 +197,21 @@ const CameraWindow = ({ onFullscreenChange }) => {
     };
   }, [isDropdownOpen]);
 
+  // Handle page visibility changes (tab switching)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden && cameraStatus === 'active') {
+        console.log('Tab hidden, stopping camera...');
+        stopCamera();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [cameraStatus]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -218,6 +233,16 @@ const CameraWindow = ({ onFullscreenChange }) => {
       }
       if (guitarRef.current) {
         guitarRef.current.updatePressedKeys([]);
+      }
+      // Exit fullscreen if active
+      if (document.fullscreenElement) {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) {
+          document.msExitFullscreen();
+        }
       }
     };
   }, []);
@@ -396,4 +421,4 @@ const CameraWindow = ({ onFullscreenChange }) => {
   );
 };
 
-export default CameraWindow;
+export default React.memo(CameraWindow);

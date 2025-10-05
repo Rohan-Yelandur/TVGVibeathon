@@ -246,4 +246,4 @@ const Lessons = () => {
   );
 };
 
-export default Lessons;
+export default React.memo(Lessons);

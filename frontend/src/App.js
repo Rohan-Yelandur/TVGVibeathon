@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import './App.css';
 import Header from './components/Header';
 import BlobBackground from './components/BlobBackground';
@@ -14,13 +14,12 @@ import { SettingsProvider } from './contexts/SettingsContext';
 function AppContent() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const location = useLocation();
 
   return (
     <div className={`App ${isDarkMode ? 'dark-mode' : 'light-mode'}`}>
       <Header isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />
       <BlobBackground isActive={!isFullscreen} />
-      <Routes location={location} key={location.pathname}>
+      <Routes>
         <Route path="/" element={<Home onFullscreenChange={setIsFullscreen} />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/profile" element={<Profile />} />
