@@ -15,6 +15,41 @@
   display: block;
 }
 
+.handedness-toggle {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  background: rgba(17, 24, 39, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  color: #e5e7eb;
+  border: 2px solid rgba(184, 192, 255, 0.4);
+  border-radius: 12px;
+  padding: 8px 12px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  pointer-events: auto;
+  z-index: 50;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 600;
+  min-width: 60px;
+  text-align: center;
+}
+
+.handedness-toggle:hover {
+  background: rgba(34, 41, 56, 0.95);
+  border-color: rgba(184, 192, 255, 0.6);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.4);
+}
+
+.handedness-toggle:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.3);
+}
+
 .guitar-instruction {
   position: absolute;
   bottom: 80px;

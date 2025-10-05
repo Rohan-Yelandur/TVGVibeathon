@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
+import { useEffect, useRef, forwardRef, useImperativeHandle, useState } from 'react';
 import * as THREE from 'three';
 import './Guitar.css';
 
@@ -15,24 +15,29 @@ const getAudioContext = () => {
   return audioContext;
 };
 
-// Guitar string frequencies (standard tuning: E-A-D-G-B-E)
-const stringFrequencies = [
-  82.41,  // E2 (low E)
-  110.00, // A2
-  146.83, // D3
-  196.00, // G3
-  246.94, // B3
-  329.63  // E4 (high E)
-];
+// Guitar chord frequencies - different chords based on finger patterns
+const chordFrequencies = {
+  'C': [261.63, 329.63, 392.00, 523.25, 659.25, 783.99], // C major
+  'G': [196.00, 246.94, 293.66, 392.00, 493.88, 587.33], // G major
+  'Am': [220.00, 261.63, 329.63, 440.00, 523.25, 659.25], // A minor
+  'F': [174.61, 220.00, 261.63, 349.23, 440.00, 523.25], // F major
+  'D': [146.83, 185.00, 220.00, 293.66, 369.99, 440.00], // D major
+  'Em': [164.81, 196.00, 246.94, 329.63, 392.00, 493.88], // E minor
+  'Dm': [146.83, 174.61, 220.00, 293.66, 349.23, 440.00]  // D minor
+};
+
+// Current chord being played
+let currentChord = 'C';
 
 // Play guitar string with strum effect
-const playString = (stringIndex, intensity = 1.0) => {
+const playString = (stringIndex, chord = 'C', intensity = 1.0) => {
   const ctx = getAudioContext();
-  const frequency = stringFrequencies[stringIndex];
+  const frequencies = chordFrequencies[chord] || chordFrequencies['C'];
+  const frequency = frequencies[stringIndex];
   
   if (!frequency) return;
 
-  const stringKey = `string-${stringIndex}`;
+  const stringKey = `string-${stringIndex}-${chord}`;
 
   // If already playing, don't restart (let it ring out)
   if (activeOscillators[stringKey]) {
@@ -98,81 +103,115 @@ const playString = (stringIndex, intensity = 1.0) => {
   }, 1500);
 };
 
-// Map finger indices to string indices
-// Index finger (8) -> String 0 (high E)
-// Middle finger (12) -> String 1 (B)
-// Ring finger (16) -> String 2 (G)
-// Pinky finger (20) -> String 3 (D)
-// We'll use thumb area for strings 4 and 5
-const FINGER_TO_STRING = {
-  8: 0,   // Index -> High E (thinnest)
-  12: 1,  // Middle -> B
-  16: 2,  // Ring -> G
-  20: 3,  // Pinky -> D
-  4: 4,   // Thumb tip -> A
-  2: 5    // Thumb IP -> Low E (thickest)
-};
-
-// Helper to estimate body center from hand positions
-// When hands are visible, we can estimate where the body center would be
-const estimateBodyCenter = (leftHand, rightHand, visibleWidth, visibleHeight) => {
-  // Use wrists (landmark 0) to estimate body position
-  const leftWrist = leftHand[0];
-  const rightWrist = rightHand[0];
-  
-  // Body center is between and slightly below the wrists
-  const centerX = (leftWrist.x + rightWrist.x) / 2;
-  const centerY = (leftWrist.y + rightWrist.y) / 2 + 0.15; // Below wrists
-  const centerZ = (leftWrist.z + rightWrist.z) / 2;
-  
-  return {
-    x: (centerX - 0.5) * visibleWidth,
-    y: -(centerY - 0.5) * visibleHeight,
-    z: -centerZ * visibleWidth * 1.5
-  };
-};
-
-// Helper to calculate guitar rotation based on hand positions
-const calculateGuitarRotation = (leftHand, rightHand, visibleWidth, visibleHeight) => {
-  // Use middle finger base (landmark 9) for hand orientation
-  const leftMid = leftHand[9];
-  const rightMid = rightHand[9];
-  
-  const leftPos = new THREE.Vector3(
-    (leftMid.x - 0.5) * visibleWidth,
-    -(leftMid.y - 0.5) * visibleHeight,
-    -leftMid.z * visibleWidth * 1.5
-  );
-  
-  const rightPos = new THREE.Vector3(
-    (rightMid.x - 0.5) * visibleWidth,
-    -(rightMid.y - 0.5) * visibleHeight,
-    -rightMid.z * visibleWidth * 1.5
-  );
-  
-  // Guitar neck points from right hand to left hand
-  const neckDirection = new THREE.Vector3().subVectors(leftPos, rightPos).normalize();
-  
-  // Camera-facing logic
-  const viewDirection = new THREE.Vector3(0, 0, 1);
-  const projection = viewDirection.clone().projectOnVector(neckDirection);
-  let faceDirection = viewDirection.clone().sub(projection).normalize();
-  
-  // Fallback if aligned
-  if (faceDirection.lengthSq() < 0.001) {
-    const worldX = new THREE.Vector3(1, 0, 0);
-    const projX = worldX.clone().projectOnVector(neckDirection);
-    faceDirection = worldX.clone().sub(projX).normalize();
+// Play chord (all strings together)
+const playChord = (chord = 'C', intensity = 1.0) => {
+  const frequencies = chordFrequencies[chord] || chordFrequencies['C'];
+  // Play all strings with slight delay to simulate strumming
+  for (let i = 0; i < frequencies.length; i++) {
+    setTimeout(() => {
+      playString(i, chord, intensity);
+    }, i * 20); // 20ms delay between each string for natural strum effect
   }
-  
-  // Cross product for the third axis
-  const sideDirection = new THREE.Vector3().crossVectors(neckDirection, faceDirection).normalize();
-  
-  const rotationMatrix = new THREE.Matrix4();
-  rotationMatrix.makeBasis(sideDirection, neckDirection, faceDirection);
-  
-  return { quaternion: new THREE.Quaternion().setFromRotationMatrix(rotationMatrix), distance: leftPos.distanceTo(rightPos) };
 };
+
+// Helper function to determine if a finger is extended
+const isFingerExtended = (landmarks, fingerTipIndex, fingerPipIndex) => {
+  const tip = landmarks[fingerTipIndex];
+  const pip = landmarks[fingerPipIndex];
+  const wrist = landmarks[0];
+  
+  if (!tip || !pip || !wrist) return false;
+  
+  // Calculate distances from wrist
+  const tipDistance = Math.sqrt(
+    Math.pow(tip.x - wrist.x, 2) + 
+    Math.pow(tip.y - wrist.y, 2)
+  );
+  const pipDistance = Math.sqrt(
+    Math.pow(pip.x - wrist.x, 2) + 
+    Math.pow(pip.y - wrist.y, 2)
+  );
+  
+  // Finger is extended if tip is further from wrist than PIP joint
+  return tipDistance > pipDistance + 0.02; // Small threshold for noise
+};
+
+// Detect finger pattern and return corresponding chord
+const detectChordFromFingers = (landmarks) => {
+  // Check which fingers are extended (considering camera mirroring)
+  const thumb = isFingerExtended(landmarks, 4, 3);
+  const index = isFingerExtended(landmarks, 8, 6);
+  const middle = isFingerExtended(landmarks, 12, 10);
+  const ring = isFingerExtended(landmarks, 16, 14);
+  const pinky = isFingerExtended(landmarks, 20, 18);
+  
+  // Map finger patterns to chords (common guitar chord fingerings)
+  if (!thumb && !index && !middle && !ring && !pinky) return 'C'; // Closed fist = C major
+  if (index && !middle && !ring && !pinky) return 'G'; // Index finger = G major
+  if (index && middle && !ring && !pinky) return 'Am'; // Peace sign = A minor
+  if (index && middle && ring && !pinky) return 'F'; // Three fingers = F major
+  if (index && middle && ring && pinky) return 'D'; // Four fingers = D major
+  if (!index && middle && ring && pinky) return 'Em'; // Middle to pinky = E minor
+  if (!index && !middle && ring && pinky) return 'Dm'; // Ring and pinky = D minor
+  
+  return 'C'; // Default to C major
+};
+
+// Determine which hand is chord hand and which is strum hand
+const determineHandRoles = (handsData, visibleWidth, isLeftHanded = false) => {
+  if (handsData.length !== 2) return null;
+  
+  const hand1 = handsData[0];
+  const hand2 = handsData[1];
+  
+  // Get wrist positions (landmark 0)
+  const hand1Wrist = hand1[0];
+  const hand2Wrist = hand2[0];
+  
+  // Convert to screen coordinates (accounting for mirroring)
+  const hand1X = (hand1Wrist.x - 0.5) * visibleWidth;
+  const hand2X = (hand2Wrist.x - 0.5) * visibleWidth;
+  
+  // Default (right-handed): chord hand on left side, strum hand on right side
+  // Left-handed: chord hand on right side, strum hand on left side
+  if (!isLeftHanded) {
+    // Right-handed mode
+    if (hand1X < hand2X) {
+      return {
+        chordHand: hand1,
+        strumHand: hand2,
+        chordHandIndex: 0,
+        strumHandIndex: 1
+      };
+    } else {
+      return {
+        chordHand: hand2,
+        strumHand: hand1,
+        chordHandIndex: 1,
+        strumHandIndex: 0
+      };
+    }
+  } else {
+    // Left-handed mode (swapped)
+    if (hand1X < hand2X) {
+      return {
+        chordHand: hand2,
+        strumHand: hand1,
+        chordHandIndex: 1,
+        strumHandIndex: 0
+      };
+    } else {
+      return {
+        chordHand: hand1,
+        strumHand: hand2,
+        chordHandIndex: 0,
+        strumHandIndex: 1
+      };
+    }
+  }
+};
+
+
 
 const Guitar = forwardRef(({ onStringPlayed }, ref) => {
   const canvasRef = useRef(null);
@@ -182,9 +221,7 @@ const Guitar = forwardRef(({ onStringPlayed }, ref) => {
   const cameraRef = useRef(null);
   const animationFrameRef = useRef(null);
   const lastPlayedStringsRef = useRef({});
-  const guitarScaleRef = useRef(1.0);
-  const [showInstructions, setShowInstructions] = useState(true);
-  const [instructionText, setInstructionText] = useState('Show your hands to display the guitar');
+  const [isLeftHanded, setIsLeftHanded] = useState(false);
 
   // Setup Three.js scene
   useEffect(() => {
@@ -312,7 +349,14 @@ const Guitar = forwardRef(({ onStringPlayed }, ref) => {
     // Store guitar dimensions for positioning
     guitarGroup.userData.neckLength = 1.8;
     guitarGroup.userData.bodyHeight = 0.8;
-    guitarGroup.visible = false;
+    guitarGroup.visible = true; // Always visible
+
+    // Position guitar at fixed center position, angled based on handedness
+    guitarGroup.position.set(0, -0.5, 0); // Move down to 25% from bottom
+    // Right-handed: 45 degrees to the left, Left-handed: 45 degrees to the right  
+    const rotation = isLeftHanded ? -Math.PI / 4 : Math.PI / 4;
+    guitarGroup.rotation.set(0, 0, rotation);
+    guitarGroup.scale.set(1, 1, 1);
 
     // Add guitar to hands group (so it gets mirrored)
     handsGroup.add(guitarGroup);
@@ -375,7 +419,18 @@ const Guitar = forwardRef(({ onStringPlayed }, ref) => {
         rendererRef.current.dispose();
       }
     };
-  }, []);
+  }, [isLeftHanded]);
+
+  // Update guitar orientation when handedness changes
+  useEffect(() => {
+    if (guitarModelRef.current) {
+      guitarModelRef.current.position.set(0, -0.5, 0);
+      // Right-handed: 45 degrees to the left, Left-handed: 45 degrees to the right
+      const rotation = isLeftHanded ? -Math.PI / 4 : Math.PI / 4;
+      guitarModelRef.current.rotation.set(0, 0, rotation);
+      guitarModelRef.current.scale.set(1, 1, 1);
+    }
+  }, [isLeftHanded]);
 
   // Initialize audio context
   useEffect(() => {
@@ -408,16 +463,17 @@ const Guitar = forwardRef(({ onStringPlayed }, ref) => {
         }
       });
 
-      // If no hands data, hide guitar and stop all playing strings
+      // Guitar is always visible and positioned at center
+      guitarModelRef.current.visible = true;
+
+      // If no hands data, just return (guitar stays visible)
       if (!handsData || handsData.length === 0) {
-        guitarModelRef.current.visible = false;
-        setShowInstructions(true);
-        setInstructionText('Show your hands to display the guitar');
         lastPlayedStringsRef.current = {};
+        currentChord = 'C'; // Reset to default chord
         return;
       }
 
-      // Calculate visible dimensions
+      // Calculate visible dimensions for finger position calculations
       const camera = cameraRef.current;
       const visibleHeight = 2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.position.z;
       const visibleWidth = visibleHeight * camera.aspect;
@@ -429,105 +485,120 @@ const Guitar = forwardRef(({ onStringPlayed }, ref) => {
         z: -lm.z * visibleWidth * 1.5
       });
 
-      // Need two hands to show guitar
+      let detectedChord = 'C';
+      let strumDetected = false;
+
       if (handsData.length === 2) {
-        guitarModelRef.current.visible = true;
-        setShowInstructions(false);
-
-        const leftHandLandmarks = handsData[0];
-        const rightHandLandmarks = handsData[1];
-
-        // === POSITIONING: Use estimated body center ===
-        const bodyCenter = estimateBodyCenter(leftHandLandmarks, rightHandLandmarks, visibleWidth, visibleHeight);
+        // Two hands - use hand role detection
+        const handRoles = determineHandRoles(handsData, visibleWidth, isLeftHanded);
         
-        // === ROTATION: Use hand positions to calculate rotation ===
-        const { quaternion, distance } = calculateGuitarRotation(leftHandLandmarks, rightHandLandmarks, visibleWidth, visibleHeight);
-        
-        // === SCALE: Based on hand distance ===
-        const scale = Math.max(0.6, Math.min(1.4, distance * 0.8)); // Clamp between 0.6 and 1.4
-        guitarScaleRef.current = scale;
-        
-        // Apply positioning, rotation, and scale
-        guitarModelRef.current.position.set(bodyCenter.x, bodyCenter.y, bodyCenter.z);
-        guitarModelRef.current.quaternion.copy(quaternion);
-        guitarModelRef.current.scale.set(scale, scale, scale);
-
-        // === PLAYING: Detect fingertips hovering over strings ===
-        // We'll check the right hand (strumming hand) fingertips
-        const currentlyPlayingStrings = {};
-        
-        // Check each finger mapped to a string
-        Object.keys(FINGER_TO_STRING).forEach(fingerLandmarkIndex => {
-          const stringIndex = FINGER_TO_STRING[fingerLandmarkIndex];
-          const fingerTip = rightHandLandmarks[parseInt(fingerLandmarkIndex)];
+        if (handRoles) {
+          // Detect chord from the chord hand
+          detectedChord = detectChordFromFingers(handRoles.chordHand);
           
-          if (!fingerTip) return;
+          // Check for strumming from the strum hand
+          const fingertipIndices = [8, 12, 16, 20]; // Index, middle, ring, pinky fingertips
           
-          // Convert finger tip to 3D position
-          const fingerPos = convert(fingerTip);
-          const fingerVec = new THREE.Vector3(fingerPos.x, fingerPos.y, fingerPos.z);
-          
-          // Transform to guitar's local space
-          const guitarInverseMatrix = new THREE.Matrix4();
-          guitarInverseMatrix.copy(guitarModelRef.current.matrixWorld).invert();
-          const localFingerPos = fingerVec.clone().applyMatrix4(guitarInverseMatrix);
-          
-          // Get string position in guitar's local space
-          const stringSpacing = 0.05;
-          const stringX = (stringIndex - 2.5) * stringSpacing;
-          const stringY = 0.5; // Mid-guitar body/neck area
-          const stringZ = 0.055; // String depth
-          
-          // Check if finger is hovering over this string
-          // Allow some tolerance in X, Y, and Z directions
-          const xTolerance = 0.04; // Tolerance for X (string width)
-          const yTolerance = 0.8;  // Tolerance for Y (along guitar length)
-          const zTolerance = 0.15; // Tolerance for Z (depth - hovering distance)
-          
-          const isOverString = (
-            Math.abs(localFingerPos.x - stringX) < xTolerance &&
-            Math.abs(localFingerPos.y - stringY) < yTolerance &&
-            localFingerPos.z > (stringZ - zTolerance) && // In front of strings
-            localFingerPos.z < (stringZ + zTolerance * 0.5) // But not too far
-          );
-          
-          if (isOverString) {
-            // Finger is hovering over this string
-            currentlyPlayingStrings[stringIndex] = true;
+          fingertipIndices.forEach(fingerIndex => {
+            const fingerTip = handRoles.strumHand[fingerIndex];
+            if (!fingerTip) return;
             
-            // Calculate intensity based on how close the finger is to the string
-            const distanceToString = Math.abs(localFingerPos.z - stringZ);
-            const intensity = Math.max(0.3, Math.min(1.0, 1.0 - (distanceToString / zTolerance)));
+            // Convert finger tip to screen coordinates
+            const fingerPos = convert(fingerTip);
             
-            // Only play if not already playing
-            if (!lastPlayedStringsRef.current[stringIndex]) {
-              playString(stringIndex, intensity);
-              guitarModelRef.current.strings[stringIndex].userData.hitStrength = intensity * 2;
-              
-              if (onStringPlayed) {
-                onStringPlayed({ stringIndex, intensity });
-              }
+            // Guitar center is at (0, -0.5, 0) in 3D space
+            const guitarCenterScreen = {
+              x: 0,
+              y: -0.5 * visibleHeight
+            };
+            
+            const fingerScreen = {
+              x: fingerPos.x,
+              y: fingerPos.y
+            };
+            
+            // Calculate 2D distance from finger to guitar center
+            const distance = Math.sqrt(
+              Math.pow(fingerScreen.x - guitarCenterScreen.x, 2) + 
+              Math.pow(fingerScreen.y - guitarCenterScreen.y, 2)
+            );
+            
+            // Convert 20 pixel radius to 3D units
+            const radiusIn3D = 0.1;
+            
+            if (distance < radiusIn3D) {
+              strumDetected = true;
             }
-          }
-        });
+          });
+        }
+      } else if (handsData.length === 1) {
+        // Single hand - determine role based on position and handedness
+        const hand = handsData[0];
+        const wrist = hand[0];
+        const handX = (wrist.x - 0.5) * visibleWidth;
         
-        // Stop strings that are no longer being hovered
-        Object.keys(lastPlayedStringsRef.current).forEach(stringIndex => {
-          if (!currentlyPlayingStrings[stringIndex]) {
-            // String is no longer being hovered - it will naturally decay
-            delete lastPlayedStringsRef.current[stringIndex];
-          }
-        });
+        // Determine if this hand is chord hand or strum hand based on position and handedness
+        const isChordHand = isLeftHanded ? (handX > 0) : (handX < 0);
         
-        // Update the currently playing strings reference
-        lastPlayedStringsRef.current = currentlyPlayingStrings;
+        if (isChordHand) {
+          detectedChord = detectChordFromFingers(hand);
+        } else {
+          // This is the strum hand, check for strumming
+          const fingertipIndices = [8, 12, 16, 20];
+          
+          fingertipIndices.forEach(fingerIndex => {
+            const fingerTip = hand[fingerIndex];
+            if (!fingerTip) return;
+            
+            const fingerPos = convert(fingerTip);
+            const guitarCenterScreen = {
+              x: 0,
+              y: -0.5 * visibleHeight
+            };
+            
+            const fingerScreen = {
+              x: fingerPos.x,
+              y: fingerPos.y
+            };
+            
+            const distance = Math.sqrt(
+              Math.pow(fingerScreen.x - guitarCenterScreen.x, 2) + 
+              Math.pow(fingerScreen.y - guitarCenterScreen.y, 2)
+            );
+            
+            const radiusIn3D = 0.1;
+            
+            if (distance < radiusIn3D) {
+              strumDetected = true;
+            }
+          });
+        }
+      }
+
+      // Update current chord
+      currentChord = detectedChord;
+
+      // Play chord if strumming detected and not already playing this chord
+      const chordKey = `${currentChord}-strum`;
+      if (strumDetected && !lastPlayedStringsRef.current[chordKey]) {
+        const intensity = 0.8;
+        playChord(currentChord, intensity);
         
-      } else {
-        // Only one hand detected
-        guitarModelRef.current.visible = false;
-        setShowInstructions(true);
-        setInstructionText('Show both hands to display the guitar');
-        lastPlayedStringsRef.current = {};
+        // Visual feedback - make all strings vibrate
+        if (guitarModelRef.current.strings) {
+          guitarModelRef.current.strings.forEach(string => {
+            string.userData.hitStrength = intensity * 2;
+          });
+        }
+        
+        lastPlayedStringsRef.current[chordKey] = true;
+        
+        if (onStringPlayed) {
+          onStringPlayed({ chord: currentChord, intensity });
+        }
+      } else if (!strumDetected) {
+        // No strumming detected, clear the chord state
+        delete lastPlayedStringsRef.current[chordKey];
       }
     }
   }));
@@ -535,9 +606,13 @@ const Guitar = forwardRef(({ onStringPlayed }, ref) => {
   return (
     <div className="guitar-container">
       <canvas ref={canvasRef} className="guitar-canvas" />
-      {showInstructions && (
-        <div className="guitar-instruction">{instructionText}</div>
-      )}
+      <button 
+        className="handedness-toggle"
+        onClick={() => setIsLeftHanded(!isLeftHanded)}
+        title={`Switch to ${isLeftHanded ? 'right' : 'left'} handed mode`}
+      >
+        {isLeftHanded ? '🤚🎸' : '🎸🤚'}
+      </button>
     </div>
   );
 });
