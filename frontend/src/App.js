@@ -9,6 +9,7 @@ import Profile from './pages/Profile';
 import Settings from './pages/Settings';
 import Lessons from './components/Lessons';
 import PianoLessonPage from './pages/PianoLessonPage';
+import MultiplayerPage from './pages/MultiplayerPage';
 import { SettingsProvider } from './contexts/SettingsContext';
 
 function AppContent() {
@@ -26,6 +27,7 @@ function AppContent() {
         <Route path="/settings" element={<Settings />} />
         <Route path="/lessons" element={<Lessons />} />
         <Route path="/piano-lesson/:lessonId" element={<PianoLessonPage />} />
+        <Route path="/multiplayer" element={<MultiplayerPage />} />
       </Routes>
     </div>
   );
