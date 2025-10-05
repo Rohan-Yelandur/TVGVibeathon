@@ -30,7 +30,7 @@ const BlobBackground = ({ isActive = true }) => {
         this.y = Math.random() * canvas.height;
         this.vx = (Math.random() - 0.5) * 1.5;
         this.vy = (Math.random() - 0.5) * 1.5;
-        this.radius = 100 + Math.random() * 150;
+        this.radius = 180 + Math.random() * 220;
         this.colorIndex = Math.floor(Math.random() * colors.length);
       }
 
@@ -95,7 +95,7 @@ const BlobBackground = ({ isActive = true }) => {
 
     // Create blobs
     const blobs = [];
-    const blobCount = 6;
+    const blobCount = 12;
     for (let i = 0; i < blobCount; i++) {
       blobs.push(new Blob());
     }
