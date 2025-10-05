@@ -1,6 +1,133 @@
 import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import './Piano.css';
 
+// Audio context for playing piano sounds
+let audioContext = null;
+const activeOscillators = {};
+
+// Initialize audio context (lazy initialization to avoid autoplay issues)
+const getAudioContext = () => {
+  if (!audioContext) {
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  return audioContext;
+};
+
+// Map note names to frequencies (A4 = 440Hz standard)
+const noteFrequencies = {
+  'C4': 261.63, 'C#4': 277.18, 'D4': 293.66, 'D#4': 311.13, 'E4': 329.63,
+  'F4': 349.23, 'F#4': 369.99, 'G4': 392.00, 'G#4': 415.30, 'A4': 440.00,
+  'A#4': 466.16, 'B4': 493.88,
+  'C5': 523.25, 'C#5': 554.37, 'D5': 587.33, 'D#5': 622.25, 'E5': 659.25,
+  'F5': 698.46, 'F#5': 739.99, 'G5': 783.99, 'G#5': 830.61, 'A5': 880.00,
+  'A#5': 932.33, 'B5': 987.77,
+  'C6': 1046.50
+};
+
+// Play a piano note with velocity sensitivity
+const playNote = (noteName, intensity = 1.0) => {
+  const ctx = getAudioContext();
+  const frequency = noteFrequencies[noteName];
+  
+  if (!frequency) return;
+
+  // If this note is already playing, don't restart it
+  if (activeOscillators[noteName]) {
+    // Update volume if intensity changed significantly
+    const existingGain = activeOscillators[noteName].gainNode;
+    const currentVolume = existingGain.gain.value;
+    const targetVolume = intensity * 0.3; // Scale to reasonable volume
+    
+    if (Math.abs(currentVolume - targetVolume) > 0.05) {
+      existingGain.gain.setTargetAtTime(targetVolume, ctx.currentTime, 0.015);
+    }
+    return;
+  }
+
+  // Create oscillator for the fundamental frequency
+  const oscillator = ctx.createOscillator();
+  oscillator.type = 'sine'; // Sine wave for clean piano-like tone
+  oscillator.frequency.setValueAtTime(frequency, ctx.currentTime);
+
+  // Create gain node for volume control (velocity sensitive)
+  const gainNode = ctx.createGain();
+  const volume = intensity * 0.3; // Scale intensity to reasonable volume (0-0.3)
+  gainNode.gain.setValueAtTime(0, ctx.currentTime);
+  gainNode.gain.linearRampToValueAtTime(volume, ctx.currentTime + 0.015); // Quick attack
+
+  // Add subtle harmonics for richer piano sound
+  const harmonic2 = ctx.createOscillator();
+  harmonic2.type = 'sine';
+  harmonic2.frequency.setValueAtTime(frequency * 2, ctx.currentTime);
+  const harmonic2Gain = ctx.createGain();
+  harmonic2Gain.gain.setValueAtTime(volume * 0.3, ctx.currentTime);
+
+  const harmonic3 = ctx.createOscillator();
+  harmonic3.type = 'sine';
+  harmonic3.frequency.setValueAtTime(frequency * 3, ctx.currentTime);
+  const harmonic3Gain = ctx.createGain();
+  harmonic3Gain.gain.setValueAtTime(volume * 0.15, ctx.currentTime);
+
+  // Add a subtle low-pass filter for warmth
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.setValueAtTime(2000 + (intensity * 2000), ctx.currentTime); // Brighter when pressed harder
+  filter.Q.setValueAtTime(1, ctx.currentTime);
+
+  // Connect the audio graph
+  oscillator.connect(gainNode);
+  harmonic2.connect(harmonic2Gain);
+  harmonic3.connect(harmonic3Gain);
+  
+  gainNode.connect(filter);
+  harmonic2Gain.connect(filter);
+  harmonic3Gain.connect(filter);
+  
+  filter.connect(ctx.destination);
+
+  // Start playing
+  oscillator.start();
+  harmonic2.start();
+  harmonic3.start();
+
+  // Store references for later manipulation
+  activeOscillators[noteName] = {
+    oscillator,
+    harmonic2,
+    harmonic3,
+    gainNode,
+    harmonic2Gain,
+    harmonic3Gain,
+    filter
+  };
+};
+
+// Stop playing a note with natural decay
+const stopNote = (noteName) => {
+  if (!activeOscillators[noteName]) return;
+
+  const ctx = getAudioContext();
+  const { oscillator, harmonic2, harmonic3, gainNode, harmonic2Gain, harmonic3Gain } = activeOscillators[noteName];
+
+  // Smooth release/decay
+  const releaseTime = 0.3; // 300ms release
+  gainNode.gain.setTargetAtTime(0, ctx.currentTime, releaseTime / 3);
+  harmonic2Gain.gain.setTargetAtTime(0, ctx.currentTime, releaseTime / 3);
+  harmonic3Gain.gain.setTargetAtTime(0, ctx.currentTime, releaseTime / 3);
+
+  // Stop oscillators after release
+  setTimeout(() => {
+    try {
+      oscillator.stop();
+      harmonic2.stop();
+      harmonic3.stop();
+    } catch (e) {
+      // Ignore if already stopped
+    }
+    delete activeOscillators[noteName];
+  }, releaseTime * 1000);
+};
+
 // Defines the layout of a single octave on a piano
 const pianoLayout = [
   { note: 'C', type: 'white' },
@@ -47,6 +174,7 @@ const Piano = forwardRef(({ onKeyPlayed }, ref) => {
   const canvasRef = useRef(null);
   const keyRectsRef = useRef([]);
   const animationFrameRef = useRef(null);
+  const previousPressedKeysRef = useRef({});
 
   const drawPiano = () => {
     const canvas = canvasRef.current;
@@ -263,6 +391,35 @@ const Piano = forwardRef(({ onKeyPlayed }, ref) => {
     }
   }, [pressedKeys]);
 
+  // Initialize audio context on mount (requires user interaction)
+  useEffect(() => {
+    const initAudio = () => {
+      const ctx = getAudioContext();
+      if (ctx.state === 'suspended') {
+        ctx.resume();
+      }
+    };
+
+    // Try to initialize on first interaction
+    window.addEventListener('click', initAudio, { once: true });
+    window.addEventListener('touchstart', initAudio, { once: true });
+
+    return () => {
+      window.removeEventListener('click', initAudio);
+      window.removeEventListener('touchstart', initAudio);
+    };
+  }, []);
+
+  // Cleanup: stop all notes when component unmounts
+  useEffect(() => {
+    return () => {
+      // Stop all active notes
+      Object.keys(activeOscillators).forEach(noteName => {
+        stopNote(noteName);
+      });
+    };
+  }, []);
+
   // Expose a function to the parent component to update pressed keys
   useImperativeHandle(ref, () => ({
     updatePressedKeys: (landmarks, videoElement) => {
@@ -378,6 +535,33 @@ const Piano = forwardRef(({ onKeyPlayed }, ref) => {
           }
         });
       }
+
+      // Handle audio playback based on key changes
+      const previousKeys = previousPressedKeysRef.current;
+
+      // Start playing new keys or update intensity for existing keys
+      Object.keys(newPressedKeys).forEach(keyName => {
+        const newIntensity = newPressedKeys[keyName];
+        const oldIntensity = previousKeys[keyName];
+
+        if (!oldIntensity) {
+          // New key pressed - start playing
+          playNote(keyName, newIntensity);
+        } else if (Math.abs(newIntensity - oldIntensity) > 0.1) {
+          // Intensity changed significantly - update volume
+          playNote(keyName, newIntensity);
+        }
+      });
+
+      // Stop keys that are no longer pressed
+      Object.keys(previousKeys).forEach(keyName => {
+        if (!newPressedKeys[keyName]) {
+          stopNote(keyName);
+        }
+      });
+
+      // Update refs
+      previousPressedKeysRef.current = newPressedKeys;
 
       setPressedKeys(prev => {
         // Only update if there's a change to avoid re-renders
