@@ -186,7 +186,7 @@ const CameraWindow = ({ onFullscreenChange }) => {
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (isDropdownOpen && !event.target.closest('.instrument-selector')) {
+      if (isDropdownOpen && !event.target.closest('.camera-instrument-selector')) {
         setIsDropdownOpen(false);
       }
     };
@@ -300,7 +300,7 @@ const CameraWindow = ({ onFullscreenChange }) => {
             </button>
           )}
           {cameraStatus === 'active' && (
-            <div className="instrument-selector">
+            <div className="camera-instrument-selector">
               <div 
                 className="instrument-dropdown-custom"
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
