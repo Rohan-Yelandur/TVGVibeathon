@@ -1,16 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './Lessons.css';
 
 const Lessons = () => {
   const [selectedInstrument, setSelectedInstrument] = useState('Piano');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const instruments = [
-    'Piano',
-    'Guitar',
-    'Flute',
-    'Drums',
-    'Violin',
-    'Trumpet'
+    { name: 'Piano', emoji: '🎹' },
+    { name: 'Guitar', emoji: '🎸' },
+    { name: 'Flute', emoji: '🪈' },
+    { name: 'Drums', emoji: '🥁' },
+    { name: 'Violin', emoji: '🎻' },
+    { name: 'Trumpet', emoji: '🎺' }
   ];
 
   const skillTrees = {
@@ -119,26 +120,54 @@ const Lessons = () => {
     console.log('Clicked skill:', skill.name);
   };
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (isDropdownOpen && !event.target.closest('.lessons-instrument-selector')) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isDropdownOpen]);
+
+  const currentInstrument = instruments.find(i => i.name === selectedInstrument);
+
   return (
     <div className="lessons-container">
       <div className="lessons-content">
         <h1 className="lessons-title">Learning Path</h1>
         <p className="lessons-subtitle">Master your instrument step by step</p>
 
-        <div className="instrument-selector">
-          <label htmlFor="instrument-select">Select Instrument:</label>
-          <select
-            id="instrument-select"
-            value={selectedInstrument}
-            onChange={(e) => setSelectedInstrument(e.target.value)}
-            className="instrument-dropdown"
+        <div className="lessons-instrument-selector">
+          <div 
+            className="lessons-instrument-dropdown-custom"
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
           >
-            {instruments.map((instrument) => (
-              <option key={instrument} value={instrument}>
-                {instrument}
-              </option>
-            ))}
-          </select>
+            <span className="lessons-selected-instrument">
+              {currentInstrument && `${currentInstrument.emoji} ${currentInstrument.name}`}
+            </span>
+            <span className="lessons-dropdown-arrow">{isDropdownOpen ? '▲' : '▼'}</span>
+          </div>
+          {isDropdownOpen && (
+            <div className="lessons-instrument-options">
+              {instruments.map((instrument) => (
+                <div 
+                  key={instrument.name}
+                  className={`lessons-instrument-option ${selectedInstrument === instrument.name ? 'selected' : ''}`}
+                  onClick={() => {
+                    setSelectedInstrument(instrument.name);
+                    setIsDropdownOpen(false);
+                  }}
+                >
+                  {instrument.emoji} {instrument.name}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="skill-tree-container">

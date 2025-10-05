@@ -8,13 +8,18 @@ const About = () => {
         {/* Mission Statement */}
         <div className="about-mission glass-card">
           <h2 className="section-title">Our Mission</h2>
-          <p className="mission-text">
-            At Harmonium, we're <strong>democratizing musical education and expressiveness</strong>. 
-            We believe that everyone should have the power to create, learn, and perform music 
-            without the barriers of expensive instruments or years of traditional training. 
-            Through cutting-edge augmented reality technology, we're making music accessible, 
-            intuitive, and expressive for all.
-          </p>
+          <div className="mission-content">
+            <p className="mission-text">
+              At Harmonium, we're <strong>democratizing musical education and expressiveness</strong>. 
+              We believe that everyone should have the power to create, learn, and perform music 
+              without the barriers of expensive instruments or years of traditional training. 
+              Through cutting-edge augmented reality technology, we're making music accessible, 
+              intuitive, and expressive for all.
+            </p>
+            <div className="mission-graphic">
+              <div className="trend-icon">📈</div>
+            </div>
+          </div>
         </div>
 
         {/* Why Harmonium */}

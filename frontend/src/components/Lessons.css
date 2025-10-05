@@ -32,45 +32,117 @@
   animation: fadeInUp 0.8s ease-out;
 }
 
-.instrument-selector {
+/* Custom Dropdown Styles - Lessons Specific */
+.lessons-instrument-selector {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 1rem;
   margin-bottom: 3rem;
   animation: fadeIn 1s ease-out;
+  position: relative;
 }
 
-.instrument-selector label {
-  font-size: 1.2rem;
-  font-weight: 600;
+.lessons-instrument-dropdown-custom {
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 2px solid rgba(200, 182, 255, 0.5);
   color: #7B2CBF;
-}
-
-.instrument-dropdown {
-  padding: 12px 20px;
-  font-size: 1.1rem;
-  border: 2px solid rgba(123, 44, 191, 0.3);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(10px);
-  color: #7B2CBF;
+  padding: 0.75rem 1.5rem;
+  border-radius: 50px;
   cursor: pointer;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  font-size: 1rem;
   transition: all 0.3s ease;
-  outline: none;
-  font-weight: 600;
+  box-shadow: 
+    0 4px 15px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-width: 200px;
+  user-select: none;
 }
 
-.instrument-dropdown:hover {
-  border-color: rgba(123, 44, 191, 0.6);
-  background: rgba(255, 255, 255, 0.95);
+.lessons-instrument-dropdown-custom:hover {
+  background: rgba(200, 182, 255, 0.3);
+  border-color: rgba(200, 182, 255, 0.7);
+  box-shadow: 
+    0 6px 20px rgba(184, 192, 255, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(123, 44, 191, 0.2);
 }
 
-.instrument-dropdown:focus {
-  border-color: #7B2CBF;
-  box-shadow: 0 0 0 4px rgba(123, 44, 191, 0.1);
+.lessons-selected-instrument {
+  flex: 1;
+}
+
+.lessons-dropdown-arrow {
+  font-size: 0.75rem;
+  opacity: 0.7;
+  transition: transform 0.3s ease;
+}
+
+.lessons-instrument-options {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 200px;
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  border: 2px solid rgba(200, 182, 255, 0.5);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 
+    0 8px 25px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  animation: lessonsDropdownSlideIn 0.2s ease-out;
+  z-index: 100;
+}
+
+@keyframes lessonsDropdownSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.lessons-instrument-option {
+  padding: 0.85rem 1.5rem;
+  cursor: pointer;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  font-size: 1rem;
+  color: #7B2CBF;
+  transition: all 0.2s ease;
+  border-bottom: 1px solid rgba(200, 182, 255, 0.2);
+}
+
+.lessons-instrument-option:last-child {
+  border-bottom: none;
+}
+
+.lessons-instrument-option:hover {
+  background: rgba(200, 182, 255, 0.4);
+  padding-left: 1.75rem;
+}
+
+.lessons-instrument-option.selected {
+  background: rgba(200, 182, 255, 0.5);
+  color: #7B2CBF;
+  font-weight: 800;
+}
+
+.lessons-instrument-option.selected:hover {
+  background: rgba(200, 182, 255, 0.6);
 }
 
 .skill-tree-container {
