@@ -240,7 +240,6 @@ const Settings = () => {
           </div>
 
           <div className="settings-actions">
-            <button className="save-button" onClick={() => alert('Settings are auto-saved!')}>Save Changes</button>
             <button className="reset-button" onClick={resetSettings}>Reset to Defaults</button>
           </div>
         </div>

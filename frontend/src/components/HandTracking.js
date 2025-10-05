@@ -11,6 +11,58 @@ const HandTracking = ({ videoRef, isActive, onHandsDetected }) => {
   const lastProcessTimeRef = useRef(0);
   const { settings, getTrackingConfig } = useSettings();
 
+  // Exponential decay weighted average filter for hand smoothing
+  const smoothedLandmarksRef = useRef(null); // Store the smoothed state
+  const lastUpdateTimeRef = useRef(0);
+  const SMOOTHING_ALPHA = 0.4; // Standard alpha for responsive but smooth filtering (0.2-0.4 range)
+
+  // Function to apply exponential decay weighted average filter to hand landmarks
+  const applyExponentialSmoothing = (currentLandmarks, timestamp) => {
+    // If no previous smoothed data, initialize with current landmarks
+    if (!smoothedLandmarksRef.current || smoothedLandmarksRef.current.length !== currentLandmarks.length) {
+      smoothedLandmarksRef.current = currentLandmarks.map(hand => 
+        hand.map(landmark => ({ ...landmark }))
+      );
+      lastUpdateTimeRef.current = timestamp;
+      return smoothedLandmarksRef.current;
+    }
+
+    // Calculate time-based alpha for frame rate independence
+    const deltaTime = timestamp - lastUpdateTimeRef.current;
+    const targetFrameTime = 33.33; // ~30 FPS target
+    const timeAdjustedAlpha = Math.min(1, SMOOTHING_ALPHA * (deltaTime / targetFrameTime));
+
+    // Apply exponential smoothing: smoothed = alpha * current + (1 - alpha) * previous
+    for (let handIndex = 0; handIndex < currentLandmarks.length; handIndex++) {
+      const currentHand = currentLandmarks[handIndex];
+      const smoothedHand = smoothedLandmarksRef.current[handIndex];
+
+      if (smoothedHand && currentHand) {
+        for (let landmarkIndex = 0; landmarkIndex < currentHand.length; landmarkIndex++) {
+          const current = currentHand[landmarkIndex];
+          const smoothed = smoothedHand[landmarkIndex];
+
+          if (current && smoothed) {
+            smoothed.x = timeAdjustedAlpha * current.x + (1 - timeAdjustedAlpha) * smoothed.x;
+            smoothed.y = timeAdjustedAlpha * current.y + (1 - timeAdjustedAlpha) * smoothed.y;
+            smoothed.z = timeAdjustedAlpha * (current.z || 0) + (1 - timeAdjustedAlpha) * (smoothed.z || 0);
+          }
+        }
+      }
+    }
+
+    lastUpdateTimeRef.current = timestamp;
+    return smoothedLandmarksRef.current;
+  };
+
+  // Clear smoothed state when tracking becomes inactive
+  useEffect(() => {
+    if (!isActive) {
+      smoothedLandmarksRef.current = null;
+      lastUpdateTimeRef.current = 0;
+    }
+  }, [isActive]);
+
   // Initialize MediaPipe HandLandmarker
   useEffect(() => {
     const initializeHandLandmarker = async () => {
@@ -55,7 +107,7 @@ const HandTracking = ({ videoRef, isActive, onHandsDetected }) => {
         handLandmarkerRef.current.close();
       }
     };
-  }, [settings.trackingSensitivity]); // Reinitialize when sensitivity changes
+  }, [settings.trackingSensitivity, getTrackingConfig]); // Reinitialize when sensitivity changes
 
   // Process video frames and detect hands
   useEffect(() => {
@@ -105,9 +157,9 @@ const HandTracking = ({ videoRef, isActive, onHandsDetected }) => {
       // Always redraw the last results for smooth visuals
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       
-      // Only draw landmarks if setting is enabled
-      if (settings.showHandLandmarks && cachedResults && cachedResults.landmarks && cachedResults.landmarks.length > 0) {
-        drawHandLandmarks(ctx, cachedResults.landmarks, canvas.width, canvas.height);
+      // Only draw landmarks if setting is enabled (use last processed landmarks)
+      if (settings.showHandLandmarks && cachedResults && cachedResults.smoothedLandmarks && cachedResults.smoothedLandmarks.length > 0) {
+        drawHandLandmarks(ctx, cachedResults.smoothedLandmarks, canvas.width, canvas.height);
       }
 
       // Only run detection at throttled rate
@@ -122,18 +174,28 @@ const HandTracking = ({ videoRef, isActive, onHandsDetected }) => {
             now
           );
 
-          cachedResults = results;
+          // Apply smoothing filter to hand landmarks
+          let processedLandmarks = null;
+          if (results.landmarks && results.landmarks.length > 0) {
+            processedLandmarks = applyExponentialSmoothing(results.landmarks, now);
+          }
 
-          // Draw hand landmarks only if enabled
+          // Cache results with smoothed landmarks for display
+          cachedResults = {
+            ...results,
+            smoothedLandmarks: processedLandmarks
+          };
+
+          // Draw hand landmarks only if enabled (use smoothed landmarks for display)
           ctx.clearRect(0, 0, canvas.width, canvas.height);
-          if (settings.showHandLandmarks && results.landmarks && results.landmarks.length > 0) {
-            drawHandLandmarks(ctx, results.landmarks, canvas.width, canvas.height);
+          if (settings.showHandLandmarks && processedLandmarks && processedLandmarks.length > 0) {
+            drawHandLandmarks(ctx, processedLandmarks, canvas.width, canvas.height);
           }
           
-          // Always send hand data to parent component (even if not drawing)
-          if (results.landmarks && results.landmarks.length > 0) {
+          // Send smoothed hand data to parent component
+          if (processedLandmarks && processedLandmarks.length > 0) {
             if (onHandsDetected) {
-              onHandsDetected(results.landmarks);
+              onHandsDetected(processedLandmarks);
             }
           } else {
             if (onHandsDetected) {
@@ -157,7 +219,7 @@ const HandTracking = ({ videoRef, isActive, onHandsDetected }) => {
       lastVideoTimeRef.current = -1;
       lastProcessTimeRef.current = 0;
     };
-  }, [isActive, videoRef, onHandsDetected, settings.trackingFPS, settings.showHandLandmarks]); // Restart detection loop when FPS or visibility changes
+  }, [isActive, videoRef, onHandsDetected, settings.trackingFPS, settings.showHandLandmarks, getTrackingConfig]); // Restart detection loop when FPS or visibility changes
 
   // Draw hand landmarks on canvas (optimized)
   const drawHandLandmarks = (ctx, landmarksArray, width, height) => {

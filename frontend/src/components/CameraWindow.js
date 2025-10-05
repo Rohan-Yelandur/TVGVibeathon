@@ -3,11 +3,13 @@ import './CameraWindow.css';
 import HandTracking from './HandTracking';
 import Guitar from './Guitar';
 import Piano from './Piano';
+import Drums from './Drums';
 
 const CameraWindow = ({ onFullscreenChange }) => {
   const videoRef = useRef(null);
   const guitarRef = useRef(null);
   const pianoRef = useRef(null);
+  const drumsRef = useRef(null);
   const cameraWindowRef = useRef(null);
   const noHandsTimerRef = useRef(null);
   const [cameraStatus, setCameraStatus] = useState('idle'); // idle, requesting, active, error
@@ -19,7 +21,10 @@ const CameraWindow = ({ onFullscreenChange }) => {
 
   const handleHandsDetected = (landmarks) => {
     // Get the ref for the currently selected instrument
-    const currentInstrumentRef = selectedInstrument === 'piano' ? pianoRef : guitarRef;
+    const currentInstrumentRef = 
+      selectedInstrument === 'piano' ? pianoRef : 
+      selectedInstrument === 'drums' ? drumsRef : 
+      guitarRef;
     
     if (!currentInstrumentRef.current) return;
 
@@ -34,6 +39,9 @@ const CameraWindow = ({ onFullscreenChange }) => {
       if (selectedInstrument === 'piano') {
         // For piano, pass raw landmarks AND video element for proper coordinate mapping
         currentInstrumentRef.current.updatePressedKeys(landmarks, videoRef.current);
+      } else if (selectedInstrument === 'drums') {
+        // For drums, update drumstick positions
+        currentInstrumentRef.current.updateDrumsticks(landmarks);
       } else {
         // For guitar, pass full hand landmarks (needs two hands for positioning)
         currentInstrumentRef.current.updatePressedKeys(landmarks);
@@ -46,9 +54,11 @@ const CameraWindow = ({ onFullscreenChange }) => {
         }, 2000); // 2 second delay
       }
 
-      // Clear all pressed keys
+      // Clear all pressed keys / hide instruments
       if (selectedInstrument === 'piano') {
         currentInstrumentRef.current.updatePressedKeys(null, videoRef.current);
+      } else if (selectedInstrument === 'drums') {
+        currentInstrumentRef.current.updateDrumsticks([]);
       } else {
         currentInstrumentRef.current.updatePressedKeys([]);
       }
@@ -235,6 +245,9 @@ const CameraWindow = ({ onFullscreenChange }) => {
           {cameraStatus === 'active' && selectedInstrument === 'piano' && (
             <Piano ref={pianoRef} />
           )}
+          {cameraStatus === 'active' && selectedInstrument === 'drums' && (
+            <Drums ref={drumsRef} />
+          )}
           {showNoHandsError && cameraStatus === 'active' && (
             <div className="no-hands-warning">
               <div className="warning-icon">👋</div>
@@ -286,6 +299,10 @@ const CameraWindow = ({ onFullscreenChange }) => {
                       if (guitarRef.current && selectedInstrument !== 'piano') {
                         guitarRef.current.updatePressedKeys([]);
                       }
+                      // Clear drums state when switching to piano
+                      if (drumsRef.current && selectedInstrument !== 'piano') {
+                        drumsRef.current.updateDrumsticks([]);
+                      }
                       setSelectedInstrument('piano');
                       setIsDropdownOpen(false);
                     }}
@@ -298,6 +315,10 @@ const CameraWindow = ({ onFullscreenChange }) => {
                       // Clear piano state when switching to guitar
                       if (pianoRef.current && selectedInstrument !== 'guitar') {
                         pianoRef.current.updatePressedKeys(null, videoRef.current);
+                      }
+                      // Clear drums state when switching to guitar
+                      if (drumsRef.current && selectedInstrument !== 'guitar') {
+                        drumsRef.current.updateDrumsticks([]);
                       }
                       setSelectedInstrument('guitar');
                       setIsDropdownOpen(false);
@@ -317,6 +338,13 @@ const CameraWindow = ({ onFullscreenChange }) => {
                   <div 
                     className={`instrument-option ${selectedInstrument === 'drums' ? 'selected' : ''}`}
                     onClick={() => {
+                      // Clear other instruments when switching to drums
+                      if (pianoRef.current && selectedInstrument !== 'drums') {
+                        pianoRef.current.updatePressedKeys(null, videoRef.current);
+                      }
+                      if (guitarRef.current && selectedInstrument !== 'drums') {
+                        guitarRef.current.updatePressedKeys([]);
+                      }
                       setSelectedInstrument('drums');
                       setIsDropdownOpen(false);
                     }}
