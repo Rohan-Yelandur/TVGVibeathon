@@ -1,21 +1,28 @@
 import { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import './App.css';
 import Header from './components/Header';
 import BlobBackground from './components/BlobBackground';
-import Hero from './components/Hero';
-import CameraWindow from './components/CameraWindow';
+import Home from './pages/Home';
+import Profile from './pages/Profile';
+import Settings from './pages/Settings';
 
 function App() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   return (
-    <div className={`App ${isDarkMode ? 'dark-mode' : 'light-mode'}`}>
-      <Header isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />
-      <BlobBackground isActive={!isFullscreen} />
-      <Hero />
-      <CameraWindow onFullscreenChange={setIsFullscreen} />
-    </div>
+    <Router>
+      <div className={`App ${isDarkMode ? 'dark-mode' : 'light-mode'}`}>
+        <Header isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />
+        <BlobBackground isActive={!isFullscreen} />
+        <Routes>
+          <Route path="/" element={<Home onFullscreenChange={setIsFullscreen} />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/settings" element={<Settings />} />
+        </Routes>
+      </div>
+    </Router>
   );
 }
 
