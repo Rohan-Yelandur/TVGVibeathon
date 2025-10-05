@@ -4,22 +4,10 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 6rem 2rem 3rem 2rem;
+  padding: 1rem 2rem 3rem 2rem;
   position: relative;
   overflow: hidden;
   text-align: center;
-}
-
-.Hero::before {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(circle, var(--color-pink) 0%, transparent 70%);
-  opacity: 0.1;
-  animation: float 15s ease-in-out infinite;
 }
 
 .hero-title {
