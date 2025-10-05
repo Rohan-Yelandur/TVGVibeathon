@@ -6,6 +6,8 @@ Has ***real-time*** hand tracking and ***multiplayer capabilities***!
 
 Deployed on Vercel here: https://tvg-vibeathon.vercel.app
 
+[![Video title](https://img.youtube.com/vi/mPMlWaZJMw0/0.jpg)](https://www.youtube.com/watch?v=mPMlWaZJMw0)
+
 ## Quick Start
 
 ### Installation
