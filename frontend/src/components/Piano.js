@@ -109,11 +109,29 @@ const stopNote = (noteName) => {
   const ctx = getAudioContext();
   const { oscillator, harmonic2, harmonic3, gainNode, harmonic2Gain, harmonic3Gain } = activeOscillators[noteName];
 
+  // IMMEDIATELY remove from activeOscillators to prevent duplicate calls
+  delete activeOscillators[noteName];
+
   // Smooth release/decay
-  const releaseTime = 0.3; // 300ms release
-  gainNode.gain.setTargetAtTime(0, ctx.currentTime, releaseTime / 3);
-  harmonic2Gain.gain.setTargetAtTime(0, ctx.currentTime, releaseTime / 3);
-  harmonic3Gain.gain.setTargetAtTime(0, ctx.currentTime, releaseTime / 3);
+  const releaseTime = 0.2; // 200ms release (faster for better responsiveness)
+  const currentTime = ctx.currentTime;
+  
+  // Cancel any scheduled changes and set immediate fade out
+  try {
+    gainNode.gain.cancelScheduledValues(currentTime);
+    gainNode.gain.setValueAtTime(gainNode.gain.value, currentTime);
+    gainNode.gain.linearRampToValueAtTime(0, currentTime + releaseTime);
+    
+    harmonic2Gain.gain.cancelScheduledValues(currentTime);
+    harmonic2Gain.gain.setValueAtTime(harmonic2Gain.gain.value, currentTime);
+    harmonic2Gain.gain.linearRampToValueAtTime(0, currentTime + releaseTime);
+    
+    harmonic3Gain.gain.cancelScheduledValues(currentTime);
+    harmonic3Gain.gain.setValueAtTime(harmonic3Gain.gain.value, currentTime);
+    harmonic3Gain.gain.linearRampToValueAtTime(0, currentTime + releaseTime);
+  } catch (e) {
+    // Ignore timing errors
+  }
 
   // Stop oscillators after release
   setTimeout(() => {
@@ -124,7 +142,6 @@ const stopNote = (noteName) => {
     } catch (e) {
       // Ignore if already stopped
     }
-    delete activeOscillators[noteName];
   }, releaseTime * 1000);
 };
 
@@ -184,15 +201,28 @@ const Piano = forwardRef(({ onKeyPlayed }, ref) => {
 
     ctx.clearRect(0, 0, width, height);
 
-    // Draw background
+    // Draw liquid glass background with gradient
     const bgGradient = ctx.createLinearGradient(0, 0, 0, height);
-    bgGradient.addColorStop(0, 'rgba(255, 255, 255, 0.1)');
-    bgGradient.addColorStop(1, 'rgba(255, 255, 255, 0.2)');
+    bgGradient.addColorStop(0, 'rgba(231, 198, 255, 0.15)'); // Lavender
+    bgGradient.addColorStop(0.5, 'rgba(184, 192, 255, 0.2)'); // Blue
+    bgGradient.addColorStop(1, 'rgba(200, 182, 255, 0.25)'); // Purple tint
     ctx.fillStyle = bgGradient;
     ctx.fillRect(0, 0, width, height);
-    ctx.strokeStyle = 'rgba(184, 192, 255, 0.3)';
-    ctx.lineWidth = 2;
+    
+    // Glossy border with liquid glass effect
+    const borderGradient = ctx.createLinearGradient(0, 0, 0, height);
+    borderGradient.addColorStop(0, 'rgba(231, 198, 255, 0.6)');
+    borderGradient.addColorStop(0.5, 'rgba(184, 192, 255, 0.4)');
+    borderGradient.addColorStop(1, 'rgba(200, 182, 255, 0.5)');
+    ctx.strokeStyle = borderGradient;
+    ctx.lineWidth = 3;
     ctx.strokeRect(0, 0, width, height);
+    
+    // Add inner glow effect
+    ctx.shadowColor = 'rgba(184, 192, 255, 0.3)';
+    ctx.shadowBlur = 15;
+    ctx.strokeRect(2, 2, width - 4, height - 4);
+    ctx.shadowBlur = 0;
 
 
     // Draw white keys first
@@ -206,25 +236,52 @@ const Piano = forwardRef(({ onKeyPlayed }, ref) => {
 
       ctx.save();
 
-      // Draw white key
-      ctx.fillStyle = '#f8f8f8';
+      // Draw white key with liquid glass effect
+      const whiteKeyGradient = ctx.createLinearGradient(rect.left, rect.top, rect.left, rect.bottom);
+      if (isPressed) {
+        // Pressed state - glowing liquid glass
+        whiteKeyGradient.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
+        whiteKeyGradient.addColorStop(0.3, 'rgba(231, 198, 255, 0.7)');
+        whiteKeyGradient.addColorStop(1, `rgba(184, 192, 255, ${0.5 + intensity * 0.5})`);
+      } else {
+        // Normal state - frosted glass
+        whiteKeyGradient.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
+        whiteKeyGradient.addColorStop(0.5, 'rgba(245, 240, 255, 0.85)');
+        whiteKeyGradient.addColorStop(1, 'rgba(231, 198, 255, 0.75)');
+      }
+      ctx.fillStyle = whiteKeyGradient;
       ctx.fillRect(rect.left, rect.top, rect.width, rect.height);
-      ctx.strokeStyle = '#999';
-      ctx.lineWidth = 1;
+      
+      // Glossy border
+      const borderGradient = ctx.createLinearGradient(rect.left, rect.top, rect.left, rect.bottom);
+      borderGradient.addColorStop(0, 'rgba(184, 192, 255, 0.6)');
+      borderGradient.addColorStop(0.5, 'rgba(200, 182, 255, 0.4)');
+      borderGradient.addColorStop(1, 'rgba(184, 192, 255, 0.6)');
+      ctx.strokeStyle = borderGradient;
+      ctx.lineWidth = 2;
       ctx.strokeRect(rect.left, rect.top, rect.width, rect.height);
 
-      // Draw highlight for white keys
-      if (isPressed) {
-        const highlightGradient = ctx.createLinearGradient(rect.left, rect.top, rect.left, rect.bottom);
-        highlightGradient.addColorStop(0, 'rgba(123, 104, 238, 0)');
-        highlightGradient.addColorStop(1, `rgba(123, 104, 238, ${intensity * 0.7})`);
-        ctx.fillStyle = highlightGradient;
-        ctx.fillRect(rect.left, rect.top, rect.width, rect.height);
+      // Add shine effect on top
+      const shineGradient = ctx.createLinearGradient(rect.left, rect.top, rect.left, rect.top + rect.height * 0.3);
+      shineGradient.addColorStop(0, 'rgba(255, 255, 255, 0.6)');
+      shineGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+      ctx.fillStyle = shineGradient;
+      ctx.fillRect(rect.left, rect.top, rect.width, rect.height * 0.3);
 
-        // Add a glow effect
-        ctx.shadowColor = 'rgba(123, 104, 238, 0.8)';
-        ctx.shadowBlur = 15 * intensity;
-        ctx.fillStyle = `rgba(220, 220, 255, ${intensity * 0.4})`;
+      // Pressed state effects
+      if (isPressed) {
+        // Glowing aura
+        ctx.shadowColor = `rgba(123, 104, 238, ${intensity * 0.9})`;
+        ctx.shadowBlur = 25 * intensity;
+        
+        const glowGradient = ctx.createRadialGradient(
+          rect.left + rect.width / 2, rect.bottom, 0,
+          rect.left + rect.width / 2, rect.bottom, rect.width * 0.8
+        );
+        glowGradient.addColorStop(0, `rgba(184, 192, 255, ${intensity * 0.6})`);
+        glowGradient.addColorStop(0.5, `rgba(231, 198, 255, ${intensity * 0.4})`);
+        glowGradient.addColorStop(1, 'rgba(184, 192, 255, 0)');
+        ctx.fillStyle = glowGradient;
         ctx.fillRect(rect.left, rect.top, rect.width, rect.height);
       }
       
@@ -232,12 +289,25 @@ const Piano = forwardRef(({ onKeyPlayed }, ref) => {
 
       // Draw label for white keys
       ctx.save();
-      ctx.font = 'bold 12px Montserrat';
+      ctx.font = 'bold 13px Montserrat';
       ctx.textAlign = 'center';
-      ctx.fillStyle = '#333';
-      ctx.shadowColor = 'rgba(255,255,255,0.7)';
-      ctx.shadowBlur = 2;
-      ctx.fillText(keyData.note, rect.left + rect.width / 2, height - 15);
+      ctx.textBaseline = 'middle';
+      
+      // Gradient text effect
+      const textGradient = ctx.createLinearGradient(
+        rect.left + rect.width / 2, height - 25,
+        rect.left + rect.width / 2, height - 10
+      );
+      textGradient.addColorStop(0, '#5B4B8A');
+      textGradient.addColorStop(1, '#7B68EE');
+      ctx.fillStyle = textGradient;
+      
+      // Text shadow for depth
+      ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
+      ctx.shadowBlur = 3;
+      ctx.shadowOffsetY = 1;
+      
+      ctx.fillText(keyData.note, rect.left + rect.width / 2, height - 18);
       ctx.restore();
     });
 
@@ -252,30 +322,52 @@ const Piano = forwardRef(({ onKeyPlayed }, ref) => {
 
       ctx.save();
 
-      // Draw black key with gradient
-      const gradient = ctx.createLinearGradient(rect.left, rect.top, rect.left, rect.bottom);
-      gradient.addColorStop(0, '#1a1a1a');
-      gradient.addColorStop(1, '#000000');
-      ctx.fillStyle = gradient;
+      // Draw black key with dark liquid glass effect
+      const blackKeyGradient = ctx.createLinearGradient(rect.left, rect.top, rect.left, rect.bottom);
+      if (isPressed) {
+        // Pressed state - glowing dark glass
+        blackKeyGradient.addColorStop(0, 'rgba(91, 75, 138, 0.95)');
+        blackKeyGradient.addColorStop(0.4, 'rgba(60, 50, 90, 0.9)');
+        blackKeyGradient.addColorStop(1, `rgba(30, 25, 50, ${0.85 + intensity * 0.15})`);
+      } else {
+        // Normal state - dark frosted glass
+        blackKeyGradient.addColorStop(0, 'rgba(91, 75, 138, 0.85)');
+        blackKeyGradient.addColorStop(0.5, 'rgba(50, 40, 75, 0.9)');
+        blackKeyGradient.addColorStop(1, 'rgba(26, 22, 37, 0.95)');
+      }
+      ctx.fillStyle = blackKeyGradient;
       ctx.fillRect(rect.left, rect.top, rect.width, rect.height);
       
-      // Black key border
-      ctx.strokeStyle = '#000';
-      ctx.lineWidth = 2;
+      // Glossy gradient border
+      const blackBorderGradient = ctx.createLinearGradient(rect.left, rect.top, rect.left, rect.bottom);
+      blackBorderGradient.addColorStop(0, 'rgba(123, 104, 238, 0.7)');
+      blackBorderGradient.addColorStop(0.5, 'rgba(184, 192, 255, 0.5)');
+      blackBorderGradient.addColorStop(1, 'rgba(123, 104, 238, 0.7)');
+      ctx.strokeStyle = blackBorderGradient;
+      ctx.lineWidth = 2.5;
       ctx.strokeRect(rect.left, rect.top, rect.width, rect.height);
 
-      // Draw highlight for black keys
-      if (isPressed) {
-        const highlightGradient = ctx.createLinearGradient(rect.left, rect.top, rect.left, rect.bottom);
-        highlightGradient.addColorStop(0, 'rgba(123, 104, 238, 0)');
-        highlightGradient.addColorStop(1, `rgba(123, 104, 238, ${intensity * 0.9})`);
-        ctx.fillStyle = highlightGradient;
-        ctx.fillRect(rect.left, rect.top, rect.width, rect.height);
+      // Top shine effect
+      const blackShineGradient = ctx.createLinearGradient(rect.left, rect.top, rect.left, rect.top + rect.height * 0.25);
+      blackShineGradient.addColorStop(0, 'rgba(184, 192, 255, 0.4)');
+      blackShineGradient.addColorStop(1, 'rgba(184, 192, 255, 0)');
+      ctx.fillStyle = blackShineGradient;
+      ctx.fillRect(rect.left, rect.top, rect.width, rect.height * 0.25);
 
-        // Add a glow effect for black keys
-        ctx.shadowColor = 'rgba(123, 104, 238, 1)';
-        ctx.shadowBlur = 20 * intensity;
-        ctx.fillStyle = `rgba(200, 180, 255, ${intensity * 0.6})`;
+      // Pressed state effects
+      if (isPressed) {
+        // Intense glowing aura
+        ctx.shadowColor = `rgba(184, 192, 255, ${intensity})`;
+        ctx.shadowBlur = 30 * intensity;
+        
+        const blackGlowGradient = ctx.createRadialGradient(
+          rect.left + rect.width / 2, rect.bottom, 0,
+          rect.left + rect.width / 2, rect.bottom, rect.width
+        );
+        blackGlowGradient.addColorStop(0, `rgba(200, 182, 255, ${intensity * 0.8})`);
+        blackGlowGradient.addColorStop(0.5, `rgba(184, 192, 255, ${intensity * 0.6})`);
+        blackGlowGradient.addColorStop(1, 'rgba(123, 104, 238, 0)');
+        ctx.fillStyle = blackGlowGradient;
         ctx.fillRect(rect.left, rect.top, rect.width, rect.height);
       }
       
@@ -283,12 +375,25 @@ const Piano = forwardRef(({ onKeyPlayed }, ref) => {
 
       // Draw label for black keys
       ctx.save();
-      ctx.font = 'bold 10px Montserrat';
+      ctx.font = 'bold 11px Montserrat';
       ctx.textAlign = 'center';
-      ctx.fillStyle = '#fff';
-      ctx.shadowColor = 'rgba(0,0,0,0.7)';
-      ctx.shadowBlur = 2;
-      ctx.fillText(keyData.note, rect.left + rect.width / 2, rect.bottom - 10);
+      ctx.textBaseline = 'middle';
+      
+      // Glowing text effect
+      const blackTextGradient = ctx.createLinearGradient(
+        rect.left + rect.width / 2, rect.bottom - 20,
+        rect.left + rect.width / 2, rect.bottom - 8
+      );
+      blackTextGradient.addColorStop(0, '#E7C6FF');
+      blackTextGradient.addColorStop(1, '#B8C0FF');
+      ctx.fillStyle = blackTextGradient;
+      
+      // Glowing shadow
+      ctx.shadowColor = 'rgba(184, 192, 255, 0.8)';
+      ctx.shadowBlur = 4;
+      ctx.shadowOffsetY = 0;
+      
+      ctx.fillText(keyData.note, rect.left + rect.width / 2, rect.bottom - 12);
       ctx.restore();
     });
   };
@@ -424,16 +529,39 @@ const Piano = forwardRef(({ onKeyPlayed }, ref) => {
   useImperativeHandle(ref, () => ({
     updatePressedKeys: (landmarks, videoElement) => {
       const canvas = canvasRef.current;
-      if (!canvas || !videoElement) return;
+      if (!canvas) return;
+      
+      const newPressedKeys = {};
+
+      // If no landmarks or no video element, stop all notes
+      if (!landmarks || landmarks.length === 0 || !videoElement) {
+        // Stop all currently playing notes
+        const previousKeys = previousPressedKeysRef.current;
+        Object.keys(previousKeys).forEach(keyName => {
+          stopNote(keyName);
+        });
+        
+        previousPressedKeysRef.current = {};
+        setPressedKeys({});
+        
+        if (onKeyPlayed) {
+          onKeyPlayed({});
+        }
+        return;
+      }
       
       // Get the bounding rectangles for coordinate mapping
       const pianoRect = canvas.getBoundingClientRect();
       const videoRect = videoElement.getBoundingClientRect();
-      const newPressedKeys = {};
 
       if (landmarks && landmarks.length > 0) {
         // Process each hand
         landmarks.forEach(hand => {
+          // Validate hand has enough landmarks
+          if (!hand || !Array.isArray(hand) || hand.length < 21) {
+            return; // Skip invalid hand data
+          }
+          
           // Define fingers with tip as primary, DIP as fallback
           // Excluding thumbs (indices 4, 3)
           const fingers = [
@@ -445,7 +573,15 @@ const Piano = forwardRef(({ onKeyPlayed }, ref) => {
 
           // Helper function to try detecting a key press with a joint
           const tryDetectKeyPress = (joint) => {
-            if (!joint) return null;
+            // Validate joint exists and has required properties
+            if (!joint || typeof joint.x !== 'number' || typeof joint.y !== 'number') {
+              return null;
+            }
+            
+            // Additional validation: check if coordinates are valid (0-1 range or reasonable values)
+            if (isNaN(joint.x) || isNaN(joint.y)) {
+              return null;
+            }
 
             // Step 1: Convert normalized MediaPipe coordinates (0-1) to video element coordinates
             // MediaPipe coordinates are NOT mirrored in the data, so we mirror them
@@ -517,16 +653,24 @@ const Piano = forwardRef(({ onKeyPlayed }, ref) => {
 
           // Check each finger
           for (const finger of fingers) {
-            // Try fingertip first (primary detection)
-            let detection = tryDetectKeyPress(hand[finger.tip]);
+            // Validate finger indices exist in hand array
+            if (!hand[finger.tip] && !hand[finger.dip]) {
+              continue; // Skip this finger if both landmarks are missing
+            }
             
-            // If fingertip didn't detect anything, try DIP joint (fallback)
-            if (!detection) {
+            // Try fingertip first (primary detection)
+            let detection = null;
+            if (hand[finger.tip]) {
+              detection = tryDetectKeyPress(hand[finger.tip]);
+            }
+            
+            // If fingertip didn't detect anything or doesn't exist, try DIP joint (fallback)
+            if (!detection && hand[finger.dip]) {
               detection = tryDetectKeyPress(hand[finger.dip]);
             }
 
             // If we detected a key press from either joint
-            if (detection) {
+            if (detection && detection.key && typeof detection.intensity === 'number') {
               // Store or update the intensity for this key (keep the highest intensity)
               if (!newPressedKeys[detection.key] || newPressedKeys[detection.key] < detection.intensity) {
                 newPressedKeys[detection.key] = detection.intensity;
@@ -559,6 +703,14 @@ const Piano = forwardRef(({ onKeyPlayed }, ref) => {
           stopNote(keyName);
         }
       });
+
+      // Safety check: If no new keys are pressed but we still have activeOscillators,
+      // force stop them (handles edge cases where stopNote might have been missed)
+      if (Object.keys(newPressedKeys).length === 0 && Object.keys(activeOscillators).length > 0) {
+        Object.keys(activeOscillators).forEach(keyName => {
+          stopNote(keyName);
+        });
+      }
 
       // Update refs
       previousPressedKeysRef.current = newPressedKeys;

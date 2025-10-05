@@ -6,17 +6,24 @@
   height: 25%; /* Max 25% of parent height */
   z-index: 3;
   pointer-events: none; /* Allow clicks to pass through to video/hand-tracking */
+  padding: 0 2%;
+  display: flex;
+  align-items: flex-end;
+  padding-bottom: 1.5%;
 }
 
 .piano-canvas {
   width: 100%;
   height: 100%;
-  filter: drop-shadow(0 -4px 12px rgba(123, 104, 238, 0.3));
-  transition: filter 0.3s ease;
+  filter: drop-shadow(0 -8px 24px rgba(123, 104, 238, 0.4))
+          drop-shadow(0 -4px 12px rgba(184, 192, 255, 0.3));
+  transition: filter 0.4s ease;
+  border-radius: 16px 16px 0 0;
 }
 
 .piano-canvas:active {
-  filter: drop-shadow(0 -4px 20px rgba(123, 104, 238, 0.5));
+  filter: drop-shadow(0 -12px 32px rgba(123, 104, 238, 0.6))
+          drop-shadow(0 -6px 16px rgba(184, 192, 255, 0.4));
 }
 
 /* Fullscreen adjustments */
@@ -24,12 +31,45 @@
 .camera-window:-webkit-full-screen .piano-container,
 .camera-window:-moz-full-screen .piano-container,
 .camera-window:-ms-fullscreen .piano-container {
-  height: 28%;
+  height: 30%;
+  padding-bottom: 2%;
+}
+
+.camera-window:fullscreen .piano-canvas,
+.camera-window:-webkit-full-screen .piano-canvas,
+.camera-window:-moz-full-screen .piano-canvas,
+.camera-window:-ms-fullscreen .piano-canvas {
+  filter: drop-shadow(0 -12px 36px rgba(123, 104, 238, 0.5))
+          drop-shadow(0 -6px 18px rgba(184, 192, 255, 0.4));
 }
 
 /* Responsive styles */
 @media (max-width: 768px) {
   .piano-container {
-    height: 20%;
+    height: 22%;
+    padding: 0 1%;
+    padding-bottom: 1%;
   }
+  
+  .piano-canvas {
+    filter: drop-shadow(0 -6px 18px rgba(123, 104, 238, 0.35))
+            drop-shadow(0 -3px 9px rgba(184, 192, 255, 0.25));
+    border-radius: 12px 12px 0 0;
+  }
+}
+
+/* Animation when piano appears */
+@keyframes pianoSlideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.piano-container {
+  animation: pianoSlideUp 0.5s ease-out;
 }
