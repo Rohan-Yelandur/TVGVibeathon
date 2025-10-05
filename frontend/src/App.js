@@ -6,6 +6,7 @@ import BlobBackground from './components/BlobBackground';
 import Home from './pages/Home';
 import Profile from './pages/Profile';
 import Settings from './pages/Settings';
+import Lessons from './components/Lessons';
 
 function App() {
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -20,6 +21,7 @@ function App() {
           <Route path="/" element={<Home onFullscreenChange={setIsFullscreen} />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/lessons" element={<Lessons />} />
         </Routes>
       </div>
     </Router>

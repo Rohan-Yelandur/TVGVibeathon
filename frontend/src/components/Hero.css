@@ -22,15 +22,8 @@
   animation: float 15s ease-in-out infinite;
 }
 
-.hero-content {
-  text-align: center;
-  z-index: 2;
-  max-width: 800px;
-  padding: 3rem;
-}
-
 .hero-title {
-  font-size: 5rem;
+  font-size: 6.5rem;
   font-weight: 800;
   background: linear-gradient(135deg, #7B2CBF, #C77DFF, #9D4EDD);
   -webkit-background-clip: text;
@@ -38,13 +31,18 @@
   background-clip: text;
   margin-bottom: 1rem;
   animation: bounce 2s ease-in-out infinite;
+  position: relative;
+  z-index: 2;
 }
 
 .hero-subtitle {
-  font-size: 1.5rem;
+  font-size: 2rem;
+  font-weight: 600;
   color: var(--color-text-dark);
   margin-bottom: 2rem;
   opacity: 0.9;
+  position: relative;
+  z-index: 2;
 }
 
 .cta-button {

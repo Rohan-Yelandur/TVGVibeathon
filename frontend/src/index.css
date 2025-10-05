@@ -45,21 +45,29 @@ code {
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 12px;
+  width: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(231, 198, 255, 0.1);
+  background: #F5F0FF; /* Match the body background */
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, var(--color-purple), var(--color-blue));
+  background: linear-gradient(180deg, 
+    rgba(123, 104, 238, 0.6), 
+    rgba(184, 192, 255, 0.6));
   border-radius: 10px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.5);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, var(--color-pink), var(--color-purple));
+  background: linear-gradient(180deg, 
+    rgba(123, 104, 238, 0.9), 
+    rgba(184, 192, 255, 0.9));
+}
+
+::-webkit-scrollbar-corner {
+  background: #F5F0FF;
 }
 
 /* Dark Mode Styles */
@@ -115,10 +123,16 @@ code {
 }
 
 .dark-mode ::-webkit-scrollbar-track {
-  background: rgba(26, 22, 37, 0.5);
+  background: #1a1625; /* Match dark mode background */
 }
 
 .dark-mode ::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #7B2CBF, #9D4EDD);
-  border-color: rgba(200, 182, 255, 0.3);
+  background: linear-gradient(180deg, 
+    rgba(123, 44, 191, 0.6), 
+    rgba(157, 78, 221, 0.6));
+  border-color: rgba(200, 182, 255, 0.5);
+}
+
+.dark-mode ::-webkit-scrollbar-corner {
+  background: #1a1625;
 }
