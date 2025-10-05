@@ -1,56 +1,48 @@
 .guitar-container {
-  /* Full overlay over the camera window */
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  max-width: none;
-  transform: none;
-  background: transparent;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  border-radius: 0;
-  border: none;
-  box-shadow: none;
   overflow: hidden;
-  z-index: 30; /* ensure it's above the video but below UI buttons */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none; /* allow clicks to pass through to underlying controls */
+  z-index: 30;
+  pointer-events: none;
 }
 
 .guitar-canvas {
   width: 100%;
   height: 100%;
   display: block;
-  pointer-events: none; /* don't block clicks */
 }
 
 .guitar-instruction {
   position: absolute;
-  bottom: 20px;
+  bottom: 80px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(17, 24, 39, 0.85);
+  background: rgba(17, 24, 39, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   color: #e5e7eb;
-  padding: 12px 24px;
-  border-radius: 12px;
-  font-size: 0.9em;
-  font-weight: 500;
+  padding: 20px 35px;
+  border-radius: 18px;
+  font-size: 1.05rem;
+  font-weight: 600;
   text-align: center;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(184, 192, 255, 0.4);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
   pointer-events: none;
   z-index: 40;
-  animation: fadeInUp 0.3s ease-out;
+  animation: fadeInUp 0.4s ease-out;
+  font-family: 'Montserrat', sans-serif;
+  line-height: 1.6;
+  max-width: 90%;
 }
 
 @keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translateX(-50%) translateY(10px);
+    transform: translateX(-50%) translateY(20px);
   }
   to {
     opacity: 1;
@@ -63,16 +55,24 @@
 .camera-window:-webkit-full-screen .guitar-container,
 .camera-window:-moz-full-screen .guitar-container,
 .camera-window:-ms-fullscreen .guitar-container {
-  width: 90%;
-  height: 350px;
-  bottom: 3rem;
+  width: 100%;
+  height: 100%;
+}
+
+.camera-window:fullscreen .guitar-instruction,
+.camera-window:-webkit-full-screen .guitar-instruction,
+.camera-window:-moz-full-screen .guitar-instruction,
+.camera-window:-ms-fullscreen .guitar-instruction {
+  bottom: 100px;
+  font-size: 1.2rem;
+  padding: 20px 40px;
 }
 
 /* Responsive styles */
 @media (max-width: 768px) {
-  .guitar-container {
-    width: 90%;
-    height: 200px;
-    bottom: 1rem;
+  .guitar-instruction {
+    bottom: 60px;
+    font-size: 0.85rem;
+    padding: 12px 24px;
   }
 }
