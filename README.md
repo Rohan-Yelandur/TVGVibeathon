@@ -6,6 +6,7 @@ Has ***real-time*** hand tracking and ***multiplayer capabilities***!
 
 Deployed on Vercel here: https://tvg-vibeathon.vercel.app
 
+vv   View our demo here!   vv
 <a href="https://www.youtube.com/watch?v=mPMlWaZJMw0" target="_blank" rel="noopener noreferrer">
   <img src="https://img.youtube.com/vi/mPMlWaZJMw0/maxresdefault.jpg" alt="Harmonium Demo" style="max-width: 100%;">
 </a>
