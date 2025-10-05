@@ -247,7 +247,12 @@ const CameraWindow = ({ onFullscreenChange }) => {
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
               >
                 <span className="selected-instrument">
-                  {selectedInstrument === 'piano' ? '🎹 Piano' : '🎸 Guitar'}
+                  {selectedInstrument === 'piano' && '🎹 Piano'}
+                  {selectedInstrument === 'guitar' && '🎸 Guitar'}
+                  {selectedInstrument === 'flute' && '🪈 Flute'}
+                  {selectedInstrument === 'drums' && '🥁 Drums'}
+                  {selectedInstrument === 'violin' && '🎻 Violin'}
+                  {selectedInstrument === 'trumpet' && '🎺 Trumpet'}
                 </span>
                 <span className="dropdown-arrow">{isDropdownOpen ? '▲' : '▼'}</span>
               </div>
@@ -278,6 +283,42 @@ const CameraWindow = ({ onFullscreenChange }) => {
                     }}
                   >
                     🎸 Guitar
+                  </div>
+                  <div 
+                    className={`instrument-option ${selectedInstrument === 'flute' ? 'selected' : ''}`}
+                    onClick={() => {
+                      setSelectedInstrument('flute');
+                      setIsDropdownOpen(false);
+                    }}
+                  >
+                    🪈 Flute
+                  </div>
+                  <div 
+                    className={`instrument-option ${selectedInstrument === 'drums' ? 'selected' : ''}`}
+                    onClick={() => {
+                      setSelectedInstrument('drums');
+                      setIsDropdownOpen(false);
+                    }}
+                  >
+                    🥁 Drums
+                  </div>
+                  <div 
+                    className={`instrument-option ${selectedInstrument === 'violin' ? 'selected' : ''}`}
+                    onClick={() => {
+                      setSelectedInstrument('violin');
+                      setIsDropdownOpen(false);
+                    }}
+                  >
+                    🎻 Violin
+                  </div>
+                  <div 
+                    className={`instrument-option ${selectedInstrument === 'trumpet' ? 'selected' : ''}`}
+                    onClick={() => {
+                      setSelectedInstrument('trumpet');
+                      setIsDropdownOpen(false);
+                    }}
+                  >
+                    🎺 Trumpet
                   </div>
                 </div>
               )}

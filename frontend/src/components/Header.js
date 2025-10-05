@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './Header.css';
 
 const Header = ({ isDarkMode, setIsDarkMode }) => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const navigate = useNavigate();
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -27,14 +29,11 @@ const Header = ({ isDarkMode, setIsDarkMode }) => {
       // Dark/Light mode disabled for now
       console.log('Theme toggle - Coming soon!');
     } else if (action === 'home') {
-      console.log('Navigate to Home');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      navigate('/');
     } else if (action === 'profile') {
-      console.log('Navigate to Profile');
-      // TODO: Add navigation to profile page
+      navigate('/profile');
     } else if (action === 'settings') {
-      console.log('Navigate to Settings');
-      // TODO: Add navigation to settings page
+      navigate('/settings');
     }
     setIsProfileOpen(false);
   };
