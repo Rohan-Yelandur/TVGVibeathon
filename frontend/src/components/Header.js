@@ -123,4 +123,4 @@ const Header = ({ isDarkMode, setIsDarkMode }) => {
   );
 };
 
-export default React.memo(Header);
+export default Header;

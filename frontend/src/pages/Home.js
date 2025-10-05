@@ -15,4 +15,4 @@ const Home = ({ onFullscreenChange }) => {
   );
 };
 
-export default React.memo(Home);
+export default Home;

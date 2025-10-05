@@ -1,10 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import './BlobBackground.css';
 
 const BlobBackground = ({ isActive = true }) => {
   const canvasRef = useRef(null);
-  const [isScrolling, setIsScrolling] = useState(false);
-  const scrollTimeoutRef = useRef(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -12,9 +10,6 @@ const BlobBackground = ({ isActive = true }) => {
 
     const ctx = canvas.getContext('2d');
     let animationFrameId;
-    let lastFrameTime = 0;
-    const targetFPS = 30; // Reduced from 60fps to 30fps for better performance
-    const frameInterval = 1000 / targetFPS;
 
     // Set canvas size
     const resizeCanvas = () => {
@@ -23,18 +18,6 @@ const BlobBackground = ({ isActive = true }) => {
     };
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
-
-    // Detect scrolling to pause animation
-    const handleScroll = () => {
-      setIsScrolling(true);
-      if (scrollTimeoutRef.current) {
-        clearTimeout(scrollTimeoutRef.current);
-      }
-      scrollTimeoutRef.current = setTimeout(() => {
-        setIsScrolling(false);
-      }, 150); // Resume animation 150ms after scroll stops
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
 
     // Blob class
     class Blob {
@@ -83,6 +66,11 @@ const BlobBackground = ({ isActive = true }) => {
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
         ctx.fill();
+
+        // Add defined outline
+        // ctx.strokeStyle = colors[this.colorIndex] + 'EE';
+        // ctx.lineWidth = 3;
+        // ctx.stroke();
       }
     }
 
@@ -103,9 +91,9 @@ const BlobBackground = ({ isActive = true }) => {
       '#7B92D4'  // medium slate blue
     ];
 
-    // Create blobs - reduced count for performance
+    // Create blobs
     const blobs = [];
-    const blobCount = 8; // Reduced from 12 to 8
+    const blobCount = 12;
     for (let i = 0; i < blobCount; i++) {
       blobs.push(new Blob());
     }
@@ -140,21 +128,13 @@ const BlobBackground = ({ isActive = true }) => {
       }
     };
 
-    // Animation loop with frame rate limiting
-    const animate = (currentTime) => {
-      // Only animate if isActive is true and not scrolling
-      if (!isActive || isScrolling) {
-        animationFrameId = requestAnimationFrame(animate);
+    // Animation loop
+    const animate = () => {
+      // Only animate if isActive is true
+      if (!isActive) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
         return;
       }
-
-      // Limit frame rate
-      const elapsed = currentTime - lastFrameTime;
-      if (elapsed < frameInterval) {
-        animationFrameId = requestAnimationFrame(animate);
-        return;
-      }
-      lastFrameTime = currentTime - (elapsed % frameInterval);
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -170,20 +150,16 @@ const BlobBackground = ({ isActive = true }) => {
       animationFrameId = requestAnimationFrame(animate);
     };
 
-    animationFrameId = requestAnimationFrame(animate);
+    animate();
 
     // Cleanup
     return () => {
       window.removeEventListener('resize', resizeCanvas);
-      window.removeEventListener('scroll', handleScroll);
-      if (scrollTimeoutRef.current) {
-        clearTimeout(scrollTimeoutRef.current);
-      }
       cancelAnimationFrame(animationFrameId);
     };
-  }, [isActive, isScrolling]);
+  }, [isActive]);
 
   return <canvas ref={canvasRef} className="blob-background" />;
 };
 
-export default React.memo(BlobBackground);
+export default BlobBackground;

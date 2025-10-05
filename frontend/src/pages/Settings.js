@@ -1,31 +1,16 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSettings } from '../contexts/SettingsContext';
 import './Settings.css';
 
 const Settings = () => {
   const { settings, updateSetting, resetSettings } = useSettings();
   const [saveIndicator, setSaveIndicator] = useState(false);
-  const timerRef = useRef(null);
 
-  // Show save indicator when settings change - optimized to avoid creating multiple timers
+  // Show save indicator when settings change
   useEffect(() => {
     setSaveIndicator(true);
-    
-    // Clear existing timer before creating a new one
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-    }
-    
-    timerRef.current = setTimeout(() => {
-      setSaveIndicator(false);
-      timerRef.current = null;
-    }, 2000);
-    
-    return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-      }
-    };
+    const timer = setTimeout(() => setSaveIndicator(false), 2000);
+    return () => clearTimeout(timer);
   }, [settings]);
 
   return (
@@ -263,4 +248,4 @@ const Settings = () => {
   );
 };
 
-export default React.memo(Settings);
+export default Settings;

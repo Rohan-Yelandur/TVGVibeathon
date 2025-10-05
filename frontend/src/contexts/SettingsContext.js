@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
 const SettingsContext = createContext();
 
@@ -39,21 +39,21 @@ export const SettingsProvider = ({ children }) => {
     localStorage.setItem('arMusicSettings', JSON.stringify(settings));
   }, [settings]);
 
-  const updateSetting = useCallback((key, value) => {
+  const updateSetting = (key, value) => {
     setSettings(prev => ({
       ...prev,
       [key]: value
     }));
-  }, []);
+  };
 
-  const updateSettings = useCallback((newSettings) => {
+  const updateSettings = (newSettings) => {
     setSettings(prev => ({
       ...prev,
       ...newSettings
     }));
-  }, []);
+  };
 
-  const resetSettings = useCallback(() => {
+  const resetSettings = () => {
     const defaults = {
       volume: 75,
       soundQuality: 'high',
@@ -68,7 +68,7 @@ export const SettingsProvider = ({ children }) => {
     };
     setSettings(defaults);
     localStorage.setItem('arMusicSettings', JSON.stringify(defaults));
-  }, []);
+  };
 
   // Derived values for performance - memoized to prevent unnecessary recalculations
   const getTrackingConfig = useCallback(() => {
@@ -83,14 +83,13 @@ export const SettingsProvider = ({ children }) => {
     };
   }, [settings.trackingSensitivity, settings.trackingFPS]);
 
-  // Memoize the context value to prevent unnecessary re-renders
-  const value = useMemo(() => ({
+  const value = {
     settings,
     updateSetting,
     updateSettings,
     resetSettings,
     getTrackingConfig
-  }), [settings, updateSetting, updateSettings, resetSettings, getTrackingConfig]);
+  };
 
   return (
     <SettingsContext.Provider value={value}>

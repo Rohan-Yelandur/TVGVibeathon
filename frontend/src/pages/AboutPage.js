@@ -12,4 +12,4 @@ const AboutPage = () => {
   );
 };
 
-export default React.memo(AboutPage);
+export default AboutPage;

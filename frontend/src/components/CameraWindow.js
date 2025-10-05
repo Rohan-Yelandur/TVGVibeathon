@@ -421,4 +421,4 @@ const CameraWindow = ({ onFullscreenChange }) => {
   );
 };
 
-export default React.memo(CameraWindow);
+export default CameraWindow;
