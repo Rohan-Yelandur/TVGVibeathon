@@ -55,7 +55,7 @@ const HandTracking = ({ videoRef, isActive, onHandsDetected }) => {
         handLandmarkerRef.current.close();
       }
     };
-  }, [getTrackingConfig, settings.trackingSensitivity]); // Reinitialize when sensitivity changes
+  }, [settings.trackingSensitivity]); // Reinitialize when sensitivity changes
 
   // Process video frames and detect hands
   useEffect(() => {
@@ -157,7 +157,7 @@ const HandTracking = ({ videoRef, isActive, onHandsDetected }) => {
       lastVideoTimeRef.current = -1;
       lastProcessTimeRef.current = 0;
     };
-  }, [getTrackingConfig, isActive, videoRef, onHandsDetected, settings.trackingFPS, settings.showHandLandmarks]); // Restart detection loop when FPS or visibility changes
+  }, [isActive, videoRef, onHandsDetected, settings.trackingFPS, settings.showHandLandmarks]); // Restart detection loop when FPS or visibility changes
 
   // Draw hand landmarks on canvas (optimized)
   const drawHandLandmarks = (ctx, landmarksArray, width, height) => {
