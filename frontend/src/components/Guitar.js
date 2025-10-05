@@ -523,10 +523,17 @@ const Guitar = forwardRef(({ onStringPlayed }, ref) => {
               Math.pow(fingerScreen.y - guitarCenterScreen.y, 2)
             );
             
-            // Convert 20 pixel radius to 3D units
-            const radiusIn3D = 0.1;
+            // Expanded strum detection area - much larger radius covering the base of the guitar
+            // Previous radius was 0.1, now expanding to 0.4 for much larger trigger area
+            const radiusIn3D = 0.4;
             
-            if (distance < radiusIn3D) {
+            // Additional check: allow strumming anywhere in the lower half of the guitar
+            // (below the guitar center) with even more lenient bounds
+            const isInLowerGuitarArea = fingerScreen.y <= guitarCenterScreen.y + 0.2; // Allow some area above center too
+            const horizontalDistance = Math.abs(fingerScreen.x - guitarCenterScreen.x);
+            const isWithinGuitarWidth = horizontalDistance <= 0.5; // Guitar body width area
+            
+            if ((distance < radiusIn3D) || (isInLowerGuitarArea && isWithinGuitarWidth)) {
               strumDetected = true;
             }
           });
@@ -566,9 +573,15 @@ const Guitar = forwardRef(({ onStringPlayed }, ref) => {
               Math.pow(fingerScreen.y - guitarCenterScreen.y, 2)
             );
             
-            const radiusIn3D = 0.1;
+            // Expanded strum detection area - much larger radius covering the base of the guitar
+            const radiusIn3D = 0.4;
             
-            if (distance < radiusIn3D) {
+            // Additional check: allow strumming anywhere in the lower half of the guitar
+            const isInLowerGuitarArea = fingerScreen.y <= guitarCenterScreen.y + 0.2;
+            const horizontalDistance = Math.abs(fingerScreen.x - guitarCenterScreen.x);
+            const isWithinGuitarWidth = horizontalDistance <= 0.5;
+            
+            if ((distance < radiusIn3D) || (isInLowerGuitarArea && isWithinGuitarWidth)) {
               strumDetected = true;
             }
           });
