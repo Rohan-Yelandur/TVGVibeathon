@@ -105,6 +105,15 @@ const CameraWindow = ({ onFullscreenChange }) => {
       noHandsTimerRef.current = null;
     }
     setShowNoHandsError(false);
+    
+    // Clear all pressed keys to stop any playing notes
+    if (pianoRef.current) {
+      pianoRef.current.updatePressedKeys(null, videoRef.current);
+    }
+    if (guitarRef.current) {
+      guitarRef.current.updatePressedKeys([]);
+    }
+    
     setCameraStatus('idle');
   };
 
@@ -247,6 +256,10 @@ const CameraWindow = ({ onFullscreenChange }) => {
                   <div 
                     className={`instrument-option ${selectedInstrument === 'piano' ? 'selected' : ''}`}
                     onClick={() => {
+                      // Clear guitar state when switching to piano
+                      if (guitarRef.current && selectedInstrument !== 'piano') {
+                        guitarRef.current.updatePressedKeys([]);
+                      }
                       setSelectedInstrument('piano');
                       setIsDropdownOpen(false);
                     }}
@@ -256,6 +269,10 @@ const CameraWindow = ({ onFullscreenChange }) => {
                   <div 
                     className={`instrument-option ${selectedInstrument === 'guitar' ? 'selected' : ''}`}
                     onClick={() => {
+                      // Clear piano state when switching to guitar
+                      if (pianoRef.current && selectedInstrument !== 'guitar') {
+                        pianoRef.current.updatePressedKeys(null, videoRef.current);
+                      }
                       setSelectedInstrument('guitar');
                       setIsDropdownOpen(false);
                     }}
