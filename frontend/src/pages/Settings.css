@@ -66,6 +66,39 @@
   font-weight: 500;
 }
 
+.save-indicator {
+  margin-top: 1rem;
+  padding: 0.75rem 1.5rem;
+  background: rgba(76, 175, 80, 0.2);
+  border: 2px solid rgba(76, 175, 80, 0.5);
+  border-radius: var(--border-radius-pill);
+  color: #4CAF50;
+  font-weight: 600;
+  font-size: 0.95rem;
+  display: inline-block;
+  animation: fadeInOut 2s ease;
+  box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+}
+
+@keyframes fadeInOut {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  10% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  90% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+
 .settings-content {
   display: flex;
   flex-direction: column;
@@ -122,6 +155,13 @@
   font-size: 1rem;
   color: var(--color-purple);
   font-weight: 700;
+}
+
+.setting-hint {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-style: italic;
 }
 
 .slider {

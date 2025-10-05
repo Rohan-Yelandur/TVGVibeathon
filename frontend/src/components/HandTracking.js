@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { HandLandmarker, FilesetResolver } from '@mediapipe/tasks-vision';
+import { useSettings } from '../contexts/SettingsContext';
 import './HandTracking.css';
 
 const HandTracking = ({ videoRef, isActive, onHandsDetected }) => {
@@ -8,15 +9,24 @@ const HandTracking = ({ videoRef, isActive, onHandsDetected }) => {
   const animationFrameRef = useRef(null);
   const lastVideoTimeRef = useRef(-1);
   const lastProcessTimeRef = useRef(0);
+  const { settings, getTrackingConfig } = useSettings();
 
   // Initialize MediaPipe HandLandmarker
   useEffect(() => {
     const initializeHandLandmarker = async () => {
       try {
+        // Clean up existing instance if it exists
+        if (handLandmarkerRef.current) {
+          handLandmarkerRef.current.close();
+          handLandmarkerRef.current = null;
+        }
+
         const vision = await FilesetResolver.forVisionTasks(
           'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm'
         );
 
+        const trackingConfig = getTrackingConfig();
+        
         handLandmarkerRef.current = await HandLandmarker.createFromOptions(vision, {
           baseOptions: {
             modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',
@@ -24,12 +34,12 @@ const HandTracking = ({ videoRef, isActive, onHandsDetected }) => {
           },
           numHands: 2,
           runningMode: 'VIDEO',
-          minHandDetectionConfidence: 0.5,
-          minHandPresenceConfidence: 0.5,
-          minTrackingConfidence: 0.5
+          minHandDetectionConfidence: trackingConfig.minHandDetectionConfidence,
+          minHandPresenceConfidence: trackingConfig.minHandPresenceConfidence,
+          minTrackingConfidence: trackingConfig.minTrackingConfidence
         });
 
-        console.log('HandLandmarker initialized successfully');
+        console.log('HandLandmarker initialized with settings:', trackingConfig);
       } catch (error) {
         console.error('Error initializing HandLandmarker:', error);
       }
@@ -41,8 +51,11 @@ const HandTracking = ({ videoRef, isActive, onHandsDetected }) => {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
+      if (handLandmarkerRef.current) {
+        handLandmarkerRef.current.close();
+      }
     };
-  }, []);
+  }, [settings.trackingSensitivity]); // Reinitialize when sensitivity changes
 
   // Process video frames and detect hands
   useEffect(() => {
@@ -50,7 +63,8 @@ const HandTracking = ({ videoRef, isActive, onHandsDetected }) => {
       return;
     }
 
-    const FRAME_INTERVAL = 1000 / 30; // Target 30 FPS max for hand detection
+    const trackingConfig = getTrackingConfig();
+    const FRAME_INTERVAL = 1000 / trackingConfig.fps; // Use FPS from settings
     let cachedResults = null;
 
     const detectHands = async () => {
@@ -91,7 +105,8 @@ const HandTracking = ({ videoRef, isActive, onHandsDetected }) => {
       // Always redraw the last results for smooth visuals
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       
-      if (cachedResults && cachedResults.landmarks && cachedResults.landmarks.length > 0) {
+      // Only draw landmarks if setting is enabled
+      if (settings.showHandLandmarks && cachedResults && cachedResults.landmarks && cachedResults.landmarks.length > 0) {
         drawHandLandmarks(ctx, cachedResults.landmarks, canvas.width, canvas.height);
       }
 
@@ -109,17 +124,14 @@ const HandTracking = ({ videoRef, isActive, onHandsDetected }) => {
 
           cachedResults = results;
 
-          // Draw hand landmarks
+          // Draw hand landmarks only if enabled
           ctx.clearRect(0, 0, canvas.width, canvas.height);
-          if (results.landmarks && results.landmarks.length > 0) {
+          if (settings.showHandLandmarks && results.landmarks && results.landmarks.length > 0) {
             drawHandLandmarks(ctx, results.landmarks, canvas.width, canvas.height);
-            
-            // Send hand data to parent component
-            // Extract fingertips AND DIP joints (excluding thumbs)
-            // Index finger: 8 (tip), 7 (DIP)
-            // Middle finger: 12 (tip), 11 (DIP)
-            // Ring finger: 16 (tip), 15 (DIP)
-            // Pinky finger: 20 (tip), 19 (DIP)
+          }
+          
+          // Always send hand data to parent component (even if not drawing)
+          if (results.landmarks && results.landmarks.length > 0) {
             if (onHandsDetected) {
               onHandsDetected(results.landmarks);
             }
@@ -145,7 +157,7 @@ const HandTracking = ({ videoRef, isActive, onHandsDetected }) => {
       lastVideoTimeRef.current = -1;
       lastProcessTimeRef.current = 0;
     };
-  }, [isActive, videoRef, onHandsDetected]);
+  }, [isActive, videoRef, onHandsDetected, settings.trackingFPS, settings.showHandLandmarks]); // Restart detection loop when FPS or visibility changes
 
   // Draw hand landmarks on canvas (optimized)
   const drawHandLandmarks = (ctx, landmarksArray, width, height) => {

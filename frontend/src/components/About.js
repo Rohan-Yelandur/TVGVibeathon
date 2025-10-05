@@ -37,16 +37,6 @@ const About = () => {
               <p>Learn by doing with real-time hand tracking and visual feedback that makes musical concepts click.</p>
             </div>
             <div className="why-card glass-card">
-              <div className="why-icon">🌟</div>
-              <h3>Express Yourself</h3>
-              <p>From beginner to virtuoso, Harmonium adapts to your skill level and creative vision.</p>
-            </div>
-            <div className="why-card glass-card">
-              <div className="why-icon">🚀</div>
-              <h3>Practice Anywhere</h3>
-              <p>Turn any space into your personal music studio. Practice at home, on the go, or wherever inspiration strikes.</p>
-            </div>
-            <div className="why-card glass-card">
               <div className="why-icon">🏆</div>
               <h3>Trusted by State-Level Musicians</h3>
               <p>Professional performers and educators rely on Harmonium for practice, performance, and teaching.</p>
