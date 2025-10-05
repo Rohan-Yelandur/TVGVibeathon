@@ -1,0 +1,132 @@
+.drumstick {
+  position: absolute;
+  width: 150px;
+  height: 8px;
+  background: linear-gradient(to right, #8B4513 0%, #A0522D 100%);
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 15;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  transform-origin: center left;
+}
+
+.drumstick::after {
+  content: '';
+  position: absolute;
+  right: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 12px;
+  height: 12px;
+  background: #654321;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.drums-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.drum-pad {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  border: 4px solid;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.1s ease;
+  pointer-events: none;
+}
+
+.drum-pad::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+  opacity: 0.5;
+}
+
+.drum-label {
+  font-size: 1.2rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Ripple effect when drum is hit */
+.drum-hit {
+  animation: drumRipple 0.3s ease-out;
+}
+
+@keyframes drumRipple {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+    box-shadow: 0 0 20px currentColor, inset 0 0 20px currentColor;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.2);
+    opacity: 0.8;
+    box-shadow: 0 0 40px currentColor, inset 0 0 40px currentColor;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+    box-shadow: 0 0 20px currentColor, inset 0 0 20px currentColor;
+  }
+}
+
+/* Pulsing glow effect */
+.drum-pad::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  opacity: 0.3;
+  animation: drumPulse 2s ease-in-out infinite;
+}
+
+@keyframes drumPulse {
+  0%, 100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.3;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.1);
+    opacity: 0.5;
+  }
+}
+
+/* Responsive sizing */
+@media (max-width: 768px) {
+  .drum-label {
+    font-size: 0.75rem;
+  }
+  
+  .drum-pad {
+    border-width: 2px;
+  }
+}
