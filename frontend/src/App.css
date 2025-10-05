@@ -27,25 +27,18 @@
   border-color: rgba(255, 255, 255, 0.4);
 }
 
-/* Bounce-in Animation */
+/* Fade-in Animation (replaces bounce) */
 .bounce-in {
-  animation: bounceIn 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  animation: fadeInSmooth 0.5s ease-out;
 }
 
-@keyframes bounceIn {
+@keyframes fadeInSmooth {
   0% {
     opacity: 0;
-    transform: scale(0.3);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.05);
-  }
-  70% {
-    transform: scale(0.9);
+    transform: translateY(10px);
   }
   100% {
     opacity: 1;
-    transform: scale(1);
+    transform: translateY(0);
   }
 }

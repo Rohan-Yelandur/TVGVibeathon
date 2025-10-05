@@ -1,0 +1,9 @@
+.about-page {
+  min-height: 100vh;
+  width: 100%;
+}
+
+/* Adjust spacing for fixed header */
+.about-page .about-section {
+  padding-top: 2rem;
+}

@@ -620,7 +620,7 @@ const Piano = forwardRef(({ onKeyPlayed }, ref) => {
         onKeyPlayed(newPressedKeys);
       }
     }
-  }));
+  }), [onKeyPlayed]);
 
   return (
     <div className="piano-container">

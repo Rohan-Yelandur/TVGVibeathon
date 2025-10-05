@@ -13,7 +13,7 @@ const CameraWindow = ({ onFullscreenChange }) => {
   const [cameraStatus, setCameraStatus] = useState('idle'); // idle, requesting, active, error
   const [errorMessage, setErrorMessage] = useState('');
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [selectedInstrument, setSelectedInstrument] = useState('guitar');
+  const [selectedInstrument, setSelectedInstrument] = useState('piano');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [showNoHandsError, setShowNoHandsError] = useState(false);
 
@@ -214,7 +214,7 @@ const CameraWindow = ({ onFullscreenChange }) => {
 
   return (
     <section className="camera-section">
-      <div className="camera-container glass-card bounce-in">
+      <div className="camera-container">
         <div className={`camera-window ${showNoHandsError ? 'no-hands-detected' : ''}`} ref={cameraWindowRef}>
           <video 
             ref={videoRef}

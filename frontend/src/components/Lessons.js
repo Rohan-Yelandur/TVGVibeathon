@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './Lessons.css';
+import { PIANO_LESSONS } from './PianoLesson';
 
 const Lessons = () => {
+  const navigate = useNavigate();
   const [selectedInstrument, setSelectedInstrument] = useState('Piano');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
@@ -120,6 +123,10 @@ const Lessons = () => {
     console.log('Clicked skill:', skill.name);
   };
 
+  const handlePianoLessonClick = (lessonId) => {
+    navigate(`/piano-lesson/${lessonId}`);
+  };
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -170,45 +177,70 @@ const Lessons = () => {
           )}
         </div>
 
-        <div className="skill-tree-container">
-          <svg className="skill-tree-connections" viewBox="0 0 100 100" preserveAspectRatio="none">
-            {currentSkills.map((skill) =>
-              skill.connections.map((connectionId) => {
-                const targetSkill = currentSkills.find((s) => s.id === connectionId);
-                if (targetSkill) {
-                  return (
-                    <line
-                      key={`${skill.id}-${connectionId}`}
-                      x1={skill.x}
-                      y1={skill.y}
-                      x2={targetSkill.x}
-                      y2={targetSkill.y}
-                      className="connection-line"
-                    />
-                  );
-                }
-                return null;
-              })
-            )}
-          </svg>
-
-          {currentSkills.map((skill) => (
-            <div
-              key={skill.id}
-              className="skill-node"
-              style={{
-                left: `${skill.x}%`,
-                top: `${skill.y}%`
-              }}
-              onClick={() => handleSkillClick(skill)}
-            >
-              <div className="skill-circle">
-                <span className="skill-level">{skill.level}</span>
-              </div>
-              <div className="skill-name">{skill.name}</div>
+        {selectedInstrument === 'Piano' ? (
+          <div className="piano-lessons-list">
+            <h3 className="lessons-list-title">Available Piano Lessons</h3>
+            <div className="lessons-grid">
+              {Object.values(PIANO_LESSONS).map((lesson) => (
+                <div 
+                  key={lesson.id}
+                  className="lesson-card"
+                  onClick={() => handlePianoLessonClick(lesson.id)}
+                >
+                  <div className="lesson-card-icon">🎹</div>
+                  <h4 className="lesson-card-title">{lesson.name}</h4>
+                  <p className="lesson-card-description">{lesson.description}</p>
+                  <div className="lesson-card-steps">
+                    {lesson.steps.length} steps
+                  </div>
+                  <button className="start-lesson-button">
+                    Start Lesson →
+                  </button>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </div>
+        ) : (
+          <div className="skill-tree-container">
+            <svg className="skill-tree-connections" viewBox="0 0 100 100" preserveAspectRatio="none">
+              {currentSkills.map((skill) =>
+                skill.connections.map((connectionId) => {
+                  const targetSkill = currentSkills.find((s) => s.id === connectionId);
+                  if (targetSkill) {
+                    return (
+                      <line
+                        key={`${skill.id}-${connectionId}`}
+                        x1={skill.x}
+                        y1={skill.y}
+                        x2={targetSkill.x}
+                        y2={targetSkill.y}
+                        className="connection-line"
+                      />
+                    );
+                  }
+                  return null;
+                })
+              )}
+            </svg>
+
+            {currentSkills.map((skill) => (
+              <div
+                key={skill.id}
+                className="skill-node"
+                style={{
+                  left: `${skill.x}%`,
+                  top: `${skill.y}%`
+                }}
+                onClick={() => handleSkillClick(skill)}
+              >
+                <div className="skill-circle">
+                  <span className="skill-level">{skill.level}</span>
+                </div>
+                <div className="skill-name">{skill.name}</div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

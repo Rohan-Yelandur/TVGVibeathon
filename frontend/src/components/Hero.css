@@ -30,7 +30,6 @@
   -webkit-text-fill-color: transparent;
   background-clip: text;
   margin-bottom: 1rem;
-  animation: bounce 2s ease-in-out infinite;
   position: relative;
   z-index: 2;
 }
