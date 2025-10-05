@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import './Piano.css';
+import * as Tone from 'tone';
 
 // Audio context for playing piano sounds
 let audioContext = null;
-const activeOscillators = {};
 
 // Initialize audio context (lazy initialization to avoid autoplay issues)
 const getAudioContext = () => {
@@ -13,126 +13,43 @@ const getAudioContext = () => {
   return audioContext;
 };
 
+const activeNotes = {}; // State to track playing notes
+
 // Map note names to frequencies (A4 = 440Hz standard)
-const noteFrequencies = {
-  'C4': 261.63, 'C#4': 277.18, 'D4': 293.66, 'D#4': 311.13, 'E4': 329.63,
-  'F4': 349.23, 'F#4': 369.99, 'G4': 392.00, 'G#4': 415.30, 'A4': 440.00,
-  'A#4': 466.16, 'B4': 493.88,
-  'C5': 523.25, 'C#5': 554.37, 'D5': 587.33, 'D#5': 622.25, 'E5': 659.25,
-  'F5': 698.46, 'F#5': 739.99, 'G5': 783.99, 'G#5': 830.61, 'A5': 880.00,
-  'A#5': 932.33, 'B5': 987.77,
-  'C6': 1046.50
+var noteFrequencies = {
+  'A3': 'A3.mp3', 'C4': 'C4.mp3', 'D#4': 'Ds4.mp3', 'F#4': 'Fs4.mp3', 
+  'A4': 'A4.mp3', 'C5': 'C5.mp3', 'D#5': 'Ds5.mp3', 'F#5': 'Fs5.mp3',
+  'A5': 'A5.mp3', 'C6': 'C6.mp3'
 };
 
+const reverb = new Tone.Reverb({
+    decay: 8,
+    wet: 0.2, // A little bit of reverb goes a long way
+}).toDestination();
+
+var noteGen = new Tone.Sampler({
+  urls: noteFrequencies,
+  release: 5,
+  baseUrl: "https://tonejs.github.io/audio/salamander/",
+  onload: () => {}
+}).connect(reverb);
+
 // Play a piano note with velocity sensitivity
-const playNote = (noteName, intensity = 1.0) => {
-  const ctx = getAudioContext();
-  const frequency = noteFrequencies[noteName];
-  
-  if (!frequency) return;
-
-  // If this note is already playing, don't restart it
-  if (activeOscillators[noteName]) return;
-
-  // Create oscillator for the fundamental frequency
-  const oscillator = ctx.createOscillator();
-  oscillator.type = 'sine'; // Sine wave for clean piano-like tone
-  oscillator.frequency.setValueAtTime(frequency, ctx.currentTime);
-
-  // Create gain node for volume control (velocity sensitive)
-  const gainNode = ctx.createGain();
-  const volume = intensity * 0.3; // Scale intensity to reasonable volume (0-0.3)
-  gainNode.gain.setValueAtTime(0, ctx.currentTime);
-  gainNode.gain.linearRampToValueAtTime(volume, ctx.currentTime + 0.015); // Quick attack
-
-  // Add subtle harmonics for richer piano sound
-  const harmonic2 = ctx.createOscillator();
-  harmonic2.type = 'sine';
-  harmonic2.frequency.setValueAtTime(frequency * 2, ctx.currentTime);
-  const harmonic2Gain = ctx.createGain();
-  harmonic2Gain.gain.setValueAtTime(volume * 0.3, ctx.currentTime);
-
-  const harmonic3 = ctx.createOscillator();
-  harmonic3.type = 'sine';
-  harmonic3.frequency.setValueAtTime(frequency * 3, ctx.currentTime);
-  const harmonic3Gain = ctx.createGain();
-  harmonic3Gain.gain.setValueAtTime(volume * 0.15, ctx.currentTime);
-
-  // Add a subtle low-pass filter for warmth
-  const filter = ctx.createBiquadFilter();
-  filter.type = 'lowpass';
-  filter.frequency.setValueAtTime(2000 + (intensity * 2000), ctx.currentTime); // Brighter when pressed harder
-  filter.Q.setValueAtTime(1, ctx.currentTime);
-
-  // Connect the audio graph
-  oscillator.connect(gainNode);
-  harmonic2.connect(harmonic2Gain);
-  harmonic3.connect(harmonic3Gain);
-  
-  gainNode.connect(filter);
-  harmonic2Gain.connect(filter);
-  harmonic3Gain.connect(filter);
-  
-  filter.connect(ctx.destination);
-
-  // Start playing
-  oscillator.start();
-  harmonic2.start();
-  harmonic3.start();
-
-  // Store references for later manipulation
-  activeOscillators[noteName] = {
-    oscillator,
-    harmonic2,
-    harmonic3,
-    gainNode,
-    harmonic2Gain,
-    harmonic3Gain,
-    filter
-  };
+const playNote = (noteName) => {
+  // Add the note to our state to mark it as active
+  if (activeNotes[noteName] === true) return;
+  activeNotes[noteName] = true;
+  noteGen.triggerAttack(noteName);
 };
 
 // Stop playing a note with natural decay
 const stopNote = (noteName) => {
-  if (!activeOscillators[noteName]) return;
-
-  const ctx = getAudioContext();
-  const { oscillator, harmonic2, harmonic3, gainNode, harmonic2Gain, harmonic3Gain } = activeOscillators[noteName];
-
-  // IMMEDIATELY remove from activeOscillators to prevent duplicate calls
-  delete activeOscillators[noteName];
-
-  // Smooth release/decay
-  const releaseTime = 0.2; // 200ms release (faster for better responsiveness)
-  const currentTime = ctx.currentTime;
-  
-  // Cancel any scheduled changes and set immediate fade out
-  try {
-    gainNode.gain.cancelScheduledValues(currentTime);
-    gainNode.gain.setValueAtTime(gainNode.gain.value, currentTime);
-    gainNode.gain.linearRampToValueAtTime(0, currentTime + releaseTime);
+  if (activeNotes[noteName]) {
+    noteGen.triggerRelease(noteName);
     
-    harmonic2Gain.gain.cancelScheduledValues(currentTime);
-    harmonic2Gain.gain.setValueAtTime(harmonic2Gain.gain.value, currentTime);
-    harmonic2Gain.gain.linearRampToValueAtTime(0, currentTime + releaseTime);
-    
-    harmonic3Gain.gain.cancelScheduledValues(currentTime);
-    harmonic3Gain.gain.setValueAtTime(harmonic3Gain.gain.value, currentTime);
-    harmonic3Gain.gain.linearRampToValueAtTime(0, currentTime + releaseTime);
-  } catch (e) {
-    // Ignore timing errors
+    // Remove the note from our state
+    delete activeNotes[noteName];
   }
-
-  // Stop oscillators after release
-  setTimeout(() => {
-    try {
-      oscillator.stop();
-      harmonic2.stop();
-      harmonic3.stop();
-    } catch (e) {
-      // Ignore if already stopped
-    }
-  }, releaseTime * 1000);
 };
 
 // Defines the layout of a single octave on a piano
@@ -484,7 +401,7 @@ const Piano = forwardRef(({ onKeyPlayed }, ref) => {
         cancelAnimationFrame(animationFrameRef.current);
       }
     }
-  }, [pressedKeys]);
+  });
 
   // Initialize audio context on mount (requires user interaction)
   useEffect(() => {
@@ -509,8 +426,8 @@ const Piano = forwardRef(({ onKeyPlayed }, ref) => {
   useEffect(() => {
     return () => {
       // Stop all active notes
-      Object.keys(activeOscillators).forEach(noteName => {
-        stopNote(noteName);
+      Object.keys(activeNotes).forEach(noteName => {
+          stopNote(noteName);
       });
     };
   }, []);
@@ -518,6 +435,9 @@ const Piano = forwardRef(({ onKeyPlayed }, ref) => {
   // Expose a function to the parent component to update pressed keys
   useImperativeHandle(ref, () => ({
     updatePressedKeys: (landmarks, videoElement) => {
+      if (Tone.context.state !== 'running') {
+        Tone.start();
+      }
       const canvas = canvasRef.current;
       if (!canvas) return;
       
@@ -677,10 +597,10 @@ const Piano = forwardRef(({ onKeyPlayed }, ref) => {
         }
       });
 
-      // Safety check: If no new keys are pressed but we still have activeOscillators,
+      // Safety check: If no new keys are pressed but we still have activeNotes,
       // force stop them (handles edge cases where stopNote might have been missed)
-      if (Object.keys(newPressedKeys).length === 0 && Object.keys(activeOscillators).length > 0) {
-        Object.keys(activeOscillators).forEach(keyName => {
+      if (Object.keys(newPressedKeys).length === 0 && Object.keys(activeNotes).length > 0) {
+        Object.keys(activeNotes).forEach(keyName => {
           stopNote(keyName);
         });
       }
