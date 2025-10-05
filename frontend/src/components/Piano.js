@@ -32,17 +32,7 @@ const playNote = (noteName, intensity = 1.0) => {
   if (!frequency) return;
 
   // If this note is already playing, don't restart it
-  if (activeOscillators[noteName]) {
-    // Update volume if intensity changed significantly
-    const existingGain = activeOscillators[noteName].gainNode;
-    const currentVolume = existingGain.gain.value;
-    const targetVolume = intensity * 0.3; // Scale to reasonable volume
-    
-    if (Math.abs(currentVolume - targetVolume) > 0.05) {
-      existingGain.gain.setTargetAtTime(targetVolume, ctx.currentTime, 0.015);
-    }
-    return;
-  }
+  if (activeOscillators[noteName]) return;
 
   // Create oscillator for the fundamental frequency
   const oscillator = ctx.createOscillator();
@@ -563,8 +553,8 @@ const Piano = forwardRef(({ onKeyPlayed }, ref) => {
           }
           
           // Define fingers with tip as primary, DIP as fallback
-          // Excluding thumbs (indices 4, 3)
           const fingers = [
+            { tip: 4, dip: 3 },   // Thumb
             { tip: 8, dip: 7 },   // Index finger
             { tip: 12, dip: 11 }, // Middle finger
             { tip: 16, dip: 15 }, // Ring finger
@@ -632,19 +622,10 @@ const Piano = forwardRef(({ onKeyPlayed }, ref) => {
               }
             }
 
-            if (touchedKey) {
-              const keyRect = touchedKey.rect;
-              // Calculate press depth based on vertical position within the key
-              const distanceFromTop = pianoY - keyRect.top;
-              const pressDepth = Math.max(0, Math.min(1, distanceFromTop / keyRect.height));
-              
-              // Apply exponential curve for more realistic volume
-              const clampedDepth = Math.max(0, Math.min(1, pressDepth * 1.5));
-              const intensity = Math.pow(clampedDepth, 2);
-              
+            if (touchedKey) {              
               return {
                 key: touchedKey.key,
-                intensity: intensity
+                intensity: 0.3
               };
             }
 
@@ -662,11 +643,6 @@ const Piano = forwardRef(({ onKeyPlayed }, ref) => {
             let detection = null;
             if (hand[finger.tip]) {
               detection = tryDetectKeyPress(hand[finger.tip]);
-            }
-            
-            // If fingertip didn't detect anything or doesn't exist, try DIP joint (fallback)
-            if (!detection && hand[finger.dip]) {
-              detection = tryDetectKeyPress(hand[finger.dip]);
             }
 
             // If we detected a key press from either joint
@@ -690,9 +666,6 @@ const Piano = forwardRef(({ onKeyPlayed }, ref) => {
 
         if (!oldIntensity) {
           // New key pressed - start playing
-          playNote(keyName, newIntensity);
-        } else if (Math.abs(newIntensity - oldIntensity) > 0.1) {
-          // Intensity changed significantly - update volume
           playNote(keyName, newIntensity);
         }
       });
