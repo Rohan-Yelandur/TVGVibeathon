@@ -16,16 +16,10 @@ const getAudioContext = () => {
 const activeNotes = {}; // State to track playing notes
 
 // Map note names to frequencies (A4 = 440Hz standard)
-// Using Tone.js salamander piano samples - includes C3 to C6
 var noteFrequencies = {
-  'C3': 'C3.mp3', 'D3': 'D3.mp3', 'E3': 'E3.mp3', 'F3': 'F3.mp3', 'G3': 'G3.mp3', 'A3': 'A3.mp3', 'B3': 'B3.mp3',
-  'C4': 'C4.mp3', 'D4': 'D4.mp3', 'E4': 'E4.mp3', 'F4': 'F4.mp3', 'G4': 'G4.mp3', 'A4': 'A4.mp3', 'B4': 'B4.mp3',
-  'C5': 'C5.mp3', 'D5': 'D5.mp3', 'E5': 'E5.mp3', 'F5': 'F5.mp3', 'G5': 'G5.mp3', 'A5': 'A5.mp3', 'B5': 'B5.mp3',
-  'C6': 'C6.mp3',
-  // Black keys (sharps/flats)
-  'C#3': 'Cs3.mp3', 'D#3': 'Ds3.mp3', 'F#3': 'Fs3.mp3', 'G#3': 'Gs3.mp3', 'A#3': 'As3.mp3',
-  'C#4': 'Cs4.mp3', 'D#4': 'Ds4.mp3', 'F#4': 'Fs4.mp3', 'G#4': 'Gs4.mp3', 'A#4': 'As4.mp3',
-  'C#5': 'Cs5.mp3', 'D#5': 'Ds5.mp3', 'F#5': 'Fs5.mp3', 'G#5': 'Gs5.mp3', 'A#5': 'As5.mp3'
+  'A3': 'A3.mp3', 'C4': 'C4.mp3', 'D#4': 'Ds4.mp3', 'F#4': 'Fs4.mp3', 
+  'A4': 'A4.mp3', 'C5': 'C5.mp3', 'D#5': 'Ds5.mp3', 'F#5': 'Fs5.mp3',
+  'A5': 'A5.mp3', 'C6': 'C6.mp3'
 };
 
 const reverb = new Tone.Reverb({
@@ -97,9 +91,9 @@ const createPianoKeys = (startOctave, numOctaves) => {
   return keys;
 };
 
-const pianoKeys = createPianoKeys(3, 3); // Create 3 octaves starting from octave 3 (C3-C6)
+const pianoKeys = createPianoKeys(4, 2); // Create 2 octaves starting from octave 4
 
-const Piano = forwardRef(({ onKeyPlayed, lessonRef }, ref) => {
+const Piano = forwardRef(({ onKeyPlayed }, ref) => {
   const [pressedKeys, setPressedKeys] = useState({});
   const canvasRef = useRef(null);
   const keyRectsRef = useRef([]);
@@ -625,14 +619,7 @@ const Piano = forwardRef(({ onKeyPlayed, lessonRef }, ref) => {
       if (onKeyPlayed) {
         onKeyPlayed(newPressedKeys);
       }
-
-      // Update lesson state if lesson is active
-      if (lessonRef && lessonRef.current) {
-        lessonRef.current.updateLessonState(newPressedKeys, keyRectsRef);
-      }
-    },
-    getCanvasRef: () => canvasRef,
-    getKeyRectsRef: () => keyRectsRef
+    }
   }));
 
   return (

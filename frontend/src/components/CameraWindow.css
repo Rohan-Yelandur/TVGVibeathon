@@ -216,38 +216,6 @@
   background: rgba(200, 182, 255, 0.6);
 }
 
-.exit-lesson-button {
-  position: absolute;
-  top: 1rem;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(123, 44, 191, 0.3);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 2px solid rgba(199, 125, 255, 0.5);
-  color: white;
-  padding: 0.8rem 2rem;
-  border-radius: var(--border-radius-pill);
-  cursor: pointer;
-  font-family: 'Montserrat', sans-serif;
-  font-weight: 700;
-  font-size: 1rem;
-  transition: all 0.3s ease;
-  z-index: 15;
-  box-shadow: 0 4px 15px rgba(123, 44, 191, 0.3);
-}
-
-.exit-lesson-button:hover {
-  background: rgba(123, 44, 191, 0.5);
-  transform: translateX(-50%) scale(1.05);
-  box-shadow: 0 6px 20px rgba(123, 44, 191, 0.5);
-  border-color: rgba(199, 125, 255, 0.7);
-}
-
-.exit-lesson-button:active {
-  transform: translateX(-50%) scale(1.02);
-}
-
 .stop-camera-button {
   position: absolute;
   top: 1rem;
