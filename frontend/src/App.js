@@ -21,17 +21,6 @@ function AppContent() {
     <div className={`App ${isDarkMode ? 'dark-mode' : 'light-mode'}`}>
       <Header isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />
       <BlobBackground isActive={!isFullscreen} />
-<<<<<<< Updated upstream
-      <Routes>
-        <Route path="/" element={<Home onFullscreenChange={setIsFullscreen} />} />
-        <Route path="/about" element={<AboutPage />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/settings" element={<Settings />} />
-        <Route path="/lessons" element={<Lessons />} />
-        <Route path="/piano-lesson/:lessonId" element={<PianoLessonPage />} />
-        <Route path="/multiplayer" element={<MultiplayerPage />} />
-      </Routes>
-=======
       <main className="main-content">
         <Routes>
           <Route path="/" element={<Home onFullscreenChange={setIsFullscreen} />} />
@@ -40,10 +29,10 @@ function AppContent() {
           <Route path="/settings" element={<Settings />} />
           <Route path="/lessons" element={<Lessons />} />
           <Route path="/piano-lesson/:lessonId" element={<PianoLessonPage />} />
+          <Route path="/multiplayer" element={<MultiplayerPage />} />
         </Routes>
       </main>
       <Footer />
->>>>>>> Stashed changes
     </div>
   );
 }

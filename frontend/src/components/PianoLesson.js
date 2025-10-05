@@ -281,7 +281,7 @@ const PianoLesson = ({ lessonId, onExit }) => {
       }
       setShowSuccess(false);
     }
-  }, [pressedKeys, currentStep, lessonComplete, stepCompleted]);
+  }, [pressedKeys, currentStep, lessonComplete, stepCompleted, lesson]);
 
   const handleRestart = () => {
     setCurrentStep(0);
