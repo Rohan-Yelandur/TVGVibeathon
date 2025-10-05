@@ -153,10 +153,11 @@ const HandTracking = ({ videoRef, isActive, onHandsDetected }) => {
     ctx.save();
     
     landmarksArray.forEach((landmarks) => {
-      // Draw connections between landmarks - simplified
+      // Draw connections between landmarks - excluding thumb
       const connections = [
-        [0, 1], [1, 2], [2, 3], [3, 4], // Thumb
-        [0, 5], [5, 6], [6, 7], [7, 8], // Index
+        // [0, 1], [1, 2], [2, 3], [3, 4], // Thumb - REMOVED
+        // [0, 5], // Palm to index base - REMOVED
+        [5, 6], [6, 7], [7, 8], // Index
         [5, 9], [9, 10], [10, 11], [11, 12], // Middle
         [9, 13], [13, 14], [14, 15], [15, 16], // Ring
         [13, 17], [17, 18], [18, 19], [19, 20] // Pinky
@@ -176,8 +177,8 @@ const HandTracking = ({ videoRef, isActive, onHandsDetected }) => {
       });
       ctx.stroke();
 
-      // Draw only fingertips for better performance
-      const fingertips = [4, 8, 12, 16, 20];
+      // Draw only fingertips for better performance - excluding thumb
+      const fingertips = [8, 12, 16, 20]; // Removed index 4 (thumb tip)
       ctx.fillStyle = '#7B2CBF';
       ctx.beginPath();
       fingertips.forEach((index) => {
