@@ -3,11 +3,13 @@ import './CameraWindow.css';
 import HandTracking from './HandTracking';
 import Guitar from './Guitar';
 import Piano from './Piano';
+import PianoLesson from './PianoLesson';
 
-const CameraWindow = ({ onFullscreenChange }) => {
+const CameraWindow = ({ onFullscreenChange, activeLesson, onLessonComplete }) => {
   const videoRef = useRef(null);
   const guitarRef = useRef(null);
   const pianoRef = useRef(null);
+  const pianoLessonRef = useRef(null);
   const cameraWindowRef = useRef(null);
   const noHandsTimerRef = useRef(null);
   const [cameraStatus, setCameraStatus] = useState('idle'); // idle, requesting, active, error
@@ -187,6 +189,14 @@ const CameraWindow = ({ onFullscreenChange }) => {
     };
   }, [isDropdownOpen]);
 
+  // Auto-start camera when lesson is selected
+  useEffect(() => {
+    if (activeLesson && cameraStatus === 'idle') {
+      setSelectedInstrument('piano');
+      startCamera();
+    }
+  }, [activeLesson]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -233,7 +243,15 @@ const CameraWindow = ({ onFullscreenChange }) => {
             <Guitar ref={guitarRef} />
           )}
           {cameraStatus === 'active' && selectedInstrument === 'piano' && (
-            <Piano ref={pianoRef} />
+            <Piano ref={pianoRef} lessonRef={pianoLessonRef} />
+          )}
+          {cameraStatus === 'active' && selectedInstrument === 'piano' && activeLesson && (
+            <PianoLesson 
+              ref={pianoLessonRef} 
+              lesson={activeLesson} 
+              pianoCanvasRef={pianoRef.current ? pianoRef.current.getCanvasRef() : null}
+              onLessonComplete={onLessonComplete}
+            />
           )}
           {showNoHandsError && cameraStatus === 'active' && (
             <div className="no-hands-warning">
@@ -241,6 +259,17 @@ const CameraWindow = ({ onFullscreenChange }) => {
               <div className="warning-text">No hands detected</div>
               <div className="warning-subtext">Show your hands to the camera</div>
             </div>
+          )}
+          {cameraStatus === 'active' && activeLesson && (
+            <button 
+              className="exit-lesson-button" 
+              onClick={() => {
+                if (onLessonComplete) onLessonComplete();
+              }}
+              title="Exit Lesson"
+            >
+              Exit Lesson
+            </button>
           )}
           {cameraStatus === 'active' && (
             <button 
@@ -261,7 +290,7 @@ const CameraWindow = ({ onFullscreenChange }) => {
               {isFullscreen ? '⇱' : '⤢'}
             </button>
           )}
-          {cameraStatus === 'active' && (
+          {cameraStatus === 'active' && !activeLesson && (
             <div className="instrument-selector">
               <div 
                 className="instrument-dropdown-custom"

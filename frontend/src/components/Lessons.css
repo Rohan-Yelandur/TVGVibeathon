@@ -399,3 +399,130 @@
     padding: 4px 10px;
   }
 }
+
+/* Piano Lessons Grid */
+.piano-lessons-container {
+  animation: fadeIn 0.6s ease-out;
+}
+
+.lessons-section-title {
+  font-size: 2rem;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 2rem;
+  background: linear-gradient(135deg, #7B2CBF, #C77DFF);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.lessons-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 2rem;
+  padding: 1rem;
+}
+
+.lesson-card {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 2px solid rgba(200, 182, 255, 0.4);
+  border-radius: 20px;
+  padding: 2rem;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.lesson-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #7B2CBF, #C77DFF, #7B2CBF);
+  background-size: 200% 100%;
+  animation: shimmer 3s linear infinite;
+}
+
+.lesson-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 48px rgba(123, 44, 191, 0.3);
+  border-color: rgba(199, 125, 255, 0.6);
+}
+
+.lesson-difficulty {
+  display: inline-block;
+  padding: 0.4rem 1rem;
+  background: rgba(123, 44, 191, 0.3);
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #E0AAFF;
+  margin-bottom: 1rem;
+  border: 1px solid rgba(199, 125, 255, 0.4);
+}
+
+.lesson-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #7B2CBF;
+  margin-bottom: 0.75rem;
+}
+
+.lesson-description {
+  font-size: 1rem;
+  color: #9D4EDD;
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+}
+
+.lesson-info {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+  color: #7B2CBF;
+}
+
+.lesson-steps {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.lesson-start-button {
+  width: 100%;
+  padding: 0.9rem 1.5rem;
+  background: linear-gradient(135deg, #7B2CBF, #C77DFF);
+  border: none;
+  border-radius: 30px;
+  color: white;
+  font-size: 1rem;
+  font-weight: 700;
+  font-family: 'Montserrat', sans-serif;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(123, 44, 191, 0.3);
+}
+
+.lesson-start-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(123, 44, 191, 0.5);
+}
+
+.lesson-start-button:active {
+  transform: scale(0.98);
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}

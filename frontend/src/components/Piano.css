@@ -6,10 +6,9 @@
   height: 25%; /* Max 25% of parent height */
   z-index: 3;
   pointer-events: none; /* Allow clicks to pass through to video/hand-tracking */
-  padding: 0 2%;
+  padding: 0;
   display: flex;
   align-items: flex-end;
-  padding-bottom: 1.5%;
 }
 
 .piano-canvas {
@@ -18,7 +17,6 @@
   filter: drop-shadow(0 -8px 24px rgba(123, 104, 238, 0.4))
           drop-shadow(0 -4px 12px rgba(184, 192, 255, 0.3));
   transition: filter 0.4s ease;
-  border-radius: 16px 16px 0 0;
 }
 
 .piano-canvas:active {
@@ -32,7 +30,6 @@
 .camera-window:-moz-full-screen .piano-container,
 .camera-window:-ms-fullscreen .piano-container {
   height: 30%;
-  padding-bottom: 2%;
 }
 
 .camera-window:fullscreen .piano-canvas,
@@ -47,7 +44,7 @@
 @media (max-width: 768px) {
   .piano-container {
     height: 22%;
-    padding: 0 1%;
+    padding: 0;
     padding-bottom: 1%;
   }
   
