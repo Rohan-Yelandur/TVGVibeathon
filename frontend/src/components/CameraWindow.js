@@ -94,11 +94,16 @@ const CameraWindow = ({ onFullscreenChange }) => {
   };
 
   const stopCamera = () => {
+    console.log('Stopping camera...');
     if (videoRef.current && videoRef.current.srcObject) {
       const tracks = videoRef.current.srcObject.getTracks();
-      tracks.forEach(track => track.stop());
+      tracks.forEach(track => {
+        track.stop();
+        console.log('Camera track stopped:', track.kind);
+      });
       videoRef.current.srcObject = null;
     }
+    
     // Clear the no hands timer
     if (noHandsTimerRef.current) {
       clearTimeout(noHandsTimerRef.current);
@@ -115,6 +120,7 @@ const CameraWindow = ({ onFullscreenChange }) => {
     }
     
     setCameraStatus('idle');
+    console.log('Camera stopped and status set to idle');
   };
 
   const toggleFullscreen = async () => {
@@ -184,10 +190,25 @@ const CameraWindow = ({ onFullscreenChange }) => {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      // Stop camera when component unmounts (e.g., navigating away from home page)
       if (noHandsTimerRef.current) {
         clearTimeout(noHandsTimerRef.current);
       }
-      stopCamera();
+      if (videoRef.current && videoRef.current.srcObject) {
+        const tracks = videoRef.current.srcObject.getTracks();
+        tracks.forEach(track => {
+          track.stop();
+          console.log('Camera track stopped:', track.kind);
+        });
+        videoRef.current.srcObject = null;
+      }
+      // Clear any pressed keys
+      if (pianoRef.current) {
+        pianoRef.current.updatePressedKeys(null, videoRef.current);
+      }
+      if (guitarRef.current) {
+        guitarRef.current.updatePressedKeys([]);
+      }
     };
   }, []);
 
