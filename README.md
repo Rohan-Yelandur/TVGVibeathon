@@ -1,5 +1,7 @@
 # Harmonium 🎵
 
+### Winner at the 2025 TVG Hackathon!
+
 An augmented reality platform that lets you play a variety of instruments from your laptop.
 
 Has ***real-time*** hand tracking and ***multiplayer capabilities***!
@@ -42,5 +44,3 @@ For detailed multiplayer documentation, see [MULTIPLAYER_GUIDE.md](./MULTIPLAYER
 - **MediaPipe** - Hand tracking
 - **WebRTC + PeerJS** - Peer-to-peer multiplayer
 - **Canvas API** - Visual rendering
-
-Built with ❤️ for TVG Vibeathon
