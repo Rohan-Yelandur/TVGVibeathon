@@ -1,6 +1,6 @@
 # Harmonium 🎵
 
-### Winner at the 2025 TVG Hackathon!
+### Winner at the 2025 Texas Venture Group Hackathon!
 
 An augmented reality platform that lets you play a variety of instruments from your laptop.
 
